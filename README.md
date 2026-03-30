@@ -18,6 +18,22 @@ Constraints create creativity, or something like that. Usually when I am under r
 So people will show up to this event with their own laptops. They will then go to the website, enter a room code, and wait in that room. After this I will then explain the event better and show what they are coding. The event will begin. When the event begins they will see an IDE (like vscode) in their window. They can code and will have a live HTML/CSS preview on the right. We can think about having framework specific challenges later but these seem to be the easiest rn. Also having JavaScript would be cool but those are enough for now. 
 If a user leaves the website they will be penalized by time. They will not be able to copy or paste in their code.
 Because we won't be allowing them to leave the website we should still allow external sources though. We could either just like copy then entire docs into a window in their web IDE or have a browser built in that only shows whitelisted sites (Stack Overflow/W3 Schools)
-Then, on the projector, it will show a live preview of everyone's projects as they code them. This sounds extrememly difficult and is kind of a moonshot but would be really cool. Also a large count down timer will be on the screen. It would also be nice to have everyone's name on the project they are currently working on. I think the live preview would basically be us just constantly saving and re running their website. Lastly, when the timer hits zero it should start going into the negatives, this is incase something happens that delays us. I will manually put an end to the event and when that happens we will go through each one one by one showing them on the screen then select a winner.
+Then, on the projector, it will show a live preview of everyone's projects as they code them. This sounds extrememly difficult and is kind of a moonshot but would be really cool. Also a large count down timer will be on the screen. It would also be nice to have everyone's name on the project they are currently working on. I think the live preview would basically be us just constantly saving and re running their website. Lastly, when the timer hits zero it should start going into the negatives, this is incase something happens that delays us. I will manually put an end to the event and when that happens we will go through each one one by one showing them on the screen. The organizers would then select a winner like while in a different room and yay we are done!
 
 ## The Software Idea
+- website that contains an IDE.
+    - IDE needs to have the ability to pull up documentation that we specifically allow.
+    - able to live preview the HTML/CSS that the users are typing.
+    - penalize when tabbing out. I am thinking 5 seconds the first time, 25 the next time, 1m, 2m, 4m, 8m, 16m etc etc.
+    - no copy and paste, 
+
+- presenter preview
+    - large timer with everyone's project live preview displayed
+    - on each project the persons name
+    - large timer in the top center
+    - ability for admin to end event at time
+
+- ability to flip through everyone's project and project code (basically assume everyone's view as admin)
+    - this should make it easy for everyone to see everyone else's project
+
+- Landing page where people can type in the entry code that is displayed on screen
