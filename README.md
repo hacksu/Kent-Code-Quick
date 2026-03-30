@@ -3,7 +3,7 @@ This is basically a writeup of everything the event should be.
 
 ## Motivation (by Andrew Roddy)
 This section is kind of to get you in my headspace to understand why I want to do this event. If you are a developer you can probably skip this. 
-This event essentially hinges on three ideas I have had rattling in my head for a while.
+This event essentially hinges on three ideas I have been thinking about for a while. These all focus on people learning as much as possible at this event.
 
 ### No AI
 The first one is no AI. Currently I see AI as a poison steroid. It makes the weak extremely strong and the strong even stronger. The problem is the more you use it the worse you get at programming. I said that too confidently. It feels like for me, that the more I use it the worse I get at programming. Not just like a plataeu but literally worse. I understand that everyone wants to 'leverage AI' but it feels like the more I do the less leverage I have myself as a programmer. This is to say, in this event we will try our best to make AI as inconvenient to use as possible to force people to learn as they build.
@@ -14,8 +14,9 @@ Whether it is music production, photo editing, video editing, or programming, I 
 ### Constraints
 Constraints create creativity, or something like that. Usually when I am under real time pressure is when I learn the most. While making the HacKSU reels there was demand for me to complete them in a reasonable amount of time. This forced me to cut things that were not important to include and allowed me to focus on the most important elements of the process. Another constraint is the idea itself. Although I came up with a lot of the ideas for the HacKSU reels I didn't come up with all of them. Because of this, I had to actually learn how to implement someone else's idea to the best of my ability. Another constrainit is project scope. Having the scope be small make it easy to pivot when something does not work. This allows people to learn in a less stressful environment. At a 24 hour hackathon you are spending 24 hours of your time on a project. Similar to games like League of Legends the reason you care about the match isn't only because you want to win, its because of the large amount of time you sank into it. These three constraints are why participants will have 45 minutes to complete the project.
 
-## Event Plan
-
-
-## Ideal Tech Stack
-
+## The Event Plan
+So people will show up to this event with their own laptops. They will then go to the website, enter a room code, and wait in that room. After this I will then explain the event better and show what they are coding. The event will begin. When the event begins they will see an IDE (like vscode) in their window. They can code and will have a live HTML/CSS preview on the right. We can think about having framework specific challenges later but these seem to be the easiest rn. Also having JavaScript would be cool but those are enough for now. 
+If a user leaves the website they will be penalized by time. They will not be able to copy or paste in their code.
+Because we won't be allowing them to leave the website we should still allow external sources though. We could either just like copy then entire docs into a window in their web IDE or have a browser built in that only shows whitelisted sites (Stack Overflow/W3 Schools)
+Then, on the projector, it will show a live preview of everyone's projects as they code them. This sounds extrememly difficult and is kind of a moonshot but would be really cool.
+## The Software Idea
