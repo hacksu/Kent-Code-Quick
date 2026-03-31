@@ -1,5 +1,15 @@
+from __future__ import annotations
+
+import json
+import os
+import tempfile
+import threading
+import time
 from dataclasses import dataclass, field
 from typing import Optional
+
+BACKUP_FILE = "room_backup.json"
+BACKUP_INTERVAL = 30  # seconds
 
 
 @dataclass
@@ -49,3 +59,18 @@ class RoomState:
 
 
 rooms: dict[str, RoomState] = {}
+
+
+def _backup_loop() -> None:
+    while True:
+        time.sleep(BACKUP_INTERVAL)
+        data = {code: room.to_dict() for code, room in rooms.items()}
+        dir_ = os.path.dirname(os.path.abspath(BACKUP_FILE)) or "."
+        with tempfile.NamedTemporaryFile("w", dir=dir_, delete=False, suffix=".tmp") as f:
+            json.dump(data, f)
+            tmp_path = f.name
+        os.replace(tmp_path, BACKUP_FILE)
+
+
+_backup_thread = threading.Thread(target=_backup_loop, daemon=True, name="room-backup")
+_backup_thread.start()
