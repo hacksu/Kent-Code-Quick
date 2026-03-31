@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import json
 import os
+import secrets
 import tempfile
 import threading
 import time
+import uuid
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -59,6 +61,10 @@ class RoomState:
 
 
 rooms: dict[str, RoomState] = {}
+
+
+def get_participant(name: str, sid: str) -> Participant:
+    return Participant(id=str(uuid.uuid4()), name=name, sid=sid)
 
 
 def _backup_loop() -> None:

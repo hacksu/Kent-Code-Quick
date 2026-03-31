@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import secrets
+
 from flask import request
 from flask_socketio import emit, join_room
 
 from extensions import socketio
-from room_manager import rooms
+from room_manager import get_participant, rooms
 
 
 @socketio.on("join")
@@ -19,9 +21,15 @@ def handle_join(data: dict) -> None:
     participant = room.participants.get(token)
 
     if participant is None:
-        return
+        name = data.get("name", "Anonymous")
+        token = secrets.token_urlsafe(8)
+        participant = get_participant(name, request.sid)
+        room.participants[token] = participant
+        emit("token_assigned", {"token": token})
+    else:
+        # replace stale sid
+        participant.sid = request.sid
 
-    participant.sid = request.sid
     join_room(room_code)
     emit("room_state", room.to_dict(), to=room_code)
 
