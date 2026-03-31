@@ -28,3 +28,24 @@ class Participant:
             "final_html": self.final_html,
             "final_css": self.final_css,
         }
+
+
+@dataclass
+class RoomState:
+    code: str
+    started_at: Optional[float] = None
+    ended_at: Optional[float] = None
+    duration_ms: int = 45 * 60 * 1000
+    participants: dict = field(default_factory=dict)
+
+    def to_dict(self) -> dict:
+        return {
+            "code": self.code,
+            "started_at": self.started_at,
+            "ended_at": self.ended_at,
+            "duration_ms": self.duration_ms,
+            "participants": {token: p.to_dict() for token, p in self.participants.items()},
+        }
+
+
+rooms: dict[str, RoomState] = {}
