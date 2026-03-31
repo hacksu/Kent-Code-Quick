@@ -1,10 +1,29 @@
 from __future__ import annotations
 
 from flask import request
-from flask_socketio import emit
+from flask_socketio import emit, join_room
 
 from extensions import socketio
 from room_manager import rooms
+
+
+@socketio.on("join")
+def handle_join(data: dict) -> None:
+    room_code = data.get("room_code")
+    token = data.get("token")
+
+    if not room_code or room_code not in rooms:
+        return
+
+    room = rooms[room_code]
+    participant = room.participants.get(token)
+
+    if participant is None:
+        return
+
+    participant.sid = request.sid
+    join_room(room_code)
+    emit("room_state", room.to_dict(), to=room_code)
 
 
 @socketio.on("code_update")
