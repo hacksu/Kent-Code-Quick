@@ -2,7 +2,9 @@ from gevent import monkey
 monkey.patch_all()
 
 import os
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, jsonify, request, send_from_directory, Response
+from urllib.parse import urlparse
+import requests as http_requests
 from extensions import socketio
 from room_manager import rooms
 
@@ -15,6 +17,17 @@ socketio.init_app(app, async_mode="gevent", cors_allowed_origins="*")
 
 
 ADMIN_SECRET = os.environ.get("ADMIN_SECRET", "")
+DOCS_ALLOWLIST = {"developer.mozilla.org", "www.w3schools.com"}
+
+
+@app.route("/api/docs")
+def docs_proxy():
+    url = request.args.get("url", "")
+    hostname = urlparse(url).hostname
+    if hostname not in DOCS_ALLOWLIST:
+        return jsonify({"error": "forbidden"}), 403
+    resp = http_requests.get(url, timeout=10)
+    return Response(resp.content, status=resp.status_code, content_type="text/html")
 
 
 @app.route("/api/room/<code>/results")
