@@ -2,8 +2,9 @@ from gevent import monkey
 monkey.patch_all()
 
 import os
-from flask import Flask, send_from_directory
+from flask import Flask, jsonify, request, send_from_directory
 from extensions import socketio
+from room_manager import rooms
 
 import ws_handler  # noqa: F401 — registers event handlers
 
@@ -11,6 +12,18 @@ STATIC_DIR = os.path.join(os.path.dirname(__file__), "..", "frontend", "build")
 
 app = Flask(__name__, static_folder=STATIC_DIR, static_url_path="")
 socketio.init_app(app, async_mode="gevent", cors_allowed_origins="*")
+
+
+ADMIN_SECRET = os.environ.get("ADMIN_SECRET", "")
+
+
+@app.route("/api/room/<code>/results")
+def room_results(code: str):
+    if request.args.get("secret") != ADMIN_SECRET:
+        return jsonify({"error": "forbidden"}), 403
+    if code not in rooms:
+        return jsonify({"error": "not found"}), 404
+    return jsonify(rooms[code].to_dict()), 200
 
 
 @app.route("/", defaults={"path": ""})
