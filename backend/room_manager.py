@@ -8,7 +8,7 @@ import threading
 import time
 import uuid
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Optional, Tuple
 
 BACKUP_FILE = "room_backup.json"
 BACKUP_INTERVAL = 30  # seconds
@@ -63,8 +63,48 @@ class RoomState:
 rooms: dict[str, RoomState] = {}
 
 
-def get_participant(name: str, sid: str) -> Participant:
-    return Participant(id=str(uuid.uuid4()), name=name, sid=sid)
+def get_or_create_room(code: str) -> RoomState:
+    if code not in rooms:
+        rooms[code] = RoomState(code=code)
+    return rooms[code]
+
+
+def get_participant(room: RoomState, token: Optional[str], name: str, sid: str) -> Tuple[str, Participant]:
+    if token and token in room.participants:
+        participant = room.participants[token]
+        participant.sid = sid
+        return token, participant
+    new_token = secrets.token_urlsafe(8)
+    participant = Participant(id=str(uuid.uuid4()), name=name, sid=sid)
+    room.participants[new_token] = participant
+    return new_token, participant
+
+
+_PENALTY_SCHEDULE = [5, 25, 60, 120, 240, 480, 960]
+
+
+def apply_penalty(sid: str) -> dict:
+    for room in rooms.values():
+        for participant in room.participants.values():
+            if participant.sid == sid:
+                idx = min(participant.tab_out_count, len(_PENALTY_SCHEDULE) - 1)
+                participant.penalty_ms += _PENALTY_SCHEDULE[idx] * 1000
+                participant.tab_out_count += 1
+                return {
+                    "penalty_ms": participant.penalty_ms,
+                    "tab_out_count": participant.tab_out_count,
+                }
+    return {}
+
+
+def snapshot_participant(sid: str) -> None:
+    for room in rooms.values():
+        for participant in room.participants.values():
+            if participant.sid == sid:
+                participant.final_html = participant.html
+                participant.final_css = participant.css
+                participant.submitted_at = time.time()
+                return
 
 
 def _backup_loop() -> None:

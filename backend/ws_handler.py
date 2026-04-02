@@ -1,34 +1,28 @@
 from __future__ import annotations
 
-import secrets
-
 from flask import request
 from flask_socketio import emit, join_room
 
 from extensions import socketio
-from room_manager import get_participant, rooms
+from room_manager import get_or_create_room, get_participant, rooms
 
 
 @socketio.on("join")
 def handle_join(data: dict) -> None:
     room_code = data.get("room_code")
-    token = data.get("token")
-
-    if not room_code or room_code not in rooms:
+    if not room_code:
         return
 
-    room = rooms[room_code]
-    participant = room.participants.get(token)
+    room = get_or_create_room(room_code)
+    token, participant = get_participant(
+        room,
+        data.get("token"),
+        data.get("name", "Anonymous"),
+        request.sid,
+    )
 
-    if participant is None:
-        name = data.get("name", "Anonymous")
-        token = secrets.token_urlsafe(8)
-        participant = get_participant(name, request.sid)
-        room.participants[token] = participant
+    if data.get("token") != token:
         emit("token_assigned", {"token": token})
-    else:
-        # replace stale sid
-        participant.sid = request.sid
 
     join_room(room_code)
     emit("room_state", room.to_dict(), to=room_code)
