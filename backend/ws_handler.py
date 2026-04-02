@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import time
+
 from flask import request
 from flask_socketio import emit, join_room
 
@@ -28,6 +30,7 @@ def handle_join(data: dict) -> None:
         data.get("token"),
         data.get("name", "Anonymous"),
         request.sid,
+        data.get("role", "participant"),
     )
 
     if data.get("token") != token:
@@ -35,6 +38,20 @@ def handle_join(data: dict) -> None:
 
     join_room(room_code)
     emit("room_state", room.to_dict(), to=room_code)
+
+
+@socketio.on("end_event")
+def handle_end_event(data: dict) -> None:
+    sid = request.sid
+    for room_code, room in rooms.items():
+        for participant in room.participants.values():
+            if participant.sid == sid:
+                if participant.role != "admin":
+                    return
+                room.ended_at = time.time()
+                auto_snapshot_all(room)
+                socketio.emit("event_end", room.to_dict(), to=room_code)
+                return
 
 
 @socketio.on("tab_out")

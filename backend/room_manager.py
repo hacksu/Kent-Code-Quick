@@ -26,6 +26,7 @@ class Participant:
     submitted_at: Optional[float] = None
     final_html: Optional[str] = None
     final_css: Optional[str] = None
+    role: str = "participant"
 
     def to_dict(self) -> dict:
         return {
@@ -39,6 +40,7 @@ class Participant:
             "submitted_at": self.submitted_at,
             "final_html": self.final_html,
             "final_css": self.final_css,
+            "role": self.role,
         }
 
 
@@ -69,13 +71,13 @@ def get_or_create_room(code: str) -> RoomState:
     return rooms[code]
 
 
-def get_participant(room: RoomState, token: Optional[str], name: str, sid: str) -> Tuple[str, Participant]:
+def get_participant(room: RoomState, token: Optional[str], name: str, sid: str, role: str = "participant") -> Tuple[str, Participant]:
     if token and token in room.participants:
         participant = room.participants[token]
         participant.sid = sid
         return token, participant
     new_token = secrets.token_urlsafe(8)
-    participant = Participant(id=str(uuid.uuid4()), name=name, sid=sid)
+    participant = Participant(id=str(uuid.uuid4()), name=name, sid=sid, role=role)
     room.participants[new_token] = participant
     return new_token, participant
 
