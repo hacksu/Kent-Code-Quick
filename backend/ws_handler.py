@@ -4,7 +4,16 @@ from flask import request
 from flask_socketio import emit, join_room
 
 from extensions import socketio
-from room_manager import apply_penalty, get_or_create_room, get_participant, rooms, snapshot_participant
+from room_manager import apply_penalty, auto_snapshot_all, get_or_create_room, get_participant, rooms, snapshot_participant
+
+
+def fire_event_end(room_code: str) -> None:
+    """Called by run_timer when elapsed >= duration_ms."""
+    room = rooms.get(room_code)
+    if room is None:
+        return
+    auto_snapshot_all(room)
+    socketio.emit("event_end", room.to_dict(), to=room_code)
 
 
 @socketio.on("join")

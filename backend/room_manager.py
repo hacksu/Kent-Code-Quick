@@ -97,6 +97,14 @@ def apply_penalty(sid: str) -> dict:
     return {}
 
 
+def auto_snapshot_all(room: RoomState) -> None:
+    for participant in room.participants.values():
+        if participant.submitted_at is None:
+            participant.final_html = participant.html
+            participant.final_css = participant.css
+            participant.submitted_at = time.time()
+
+
 def snapshot_participant(sid: str) -> None:
     for room in rooms.values():
         for participant in room.participants.values():
