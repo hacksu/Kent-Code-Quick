@@ -4,7 +4,7 @@ from flask import request
 from flask_socketio import emit, join_room
 
 from extensions import socketio
-from room_manager import apply_penalty, get_or_create_room, get_participant, rooms
+from room_manager import apply_penalty, get_or_create_room, get_participant, rooms, snapshot_participant
 
 
 @socketio.on("join")
@@ -37,6 +37,20 @@ def handle_tab_out(data: dict) -> None:
         "penalty_ms": result["penalty_ms"],
         "tab_out_count": result["tab_out_count"],
     })
+
+
+@socketio.on("submit")
+def handle_submit(data: dict) -> None:
+    sid = request.sid
+    for room_code, room in rooms.items():
+        for participant in room.participants.values():
+            if participant.sid == sid:
+                if participant.submitted_at is not None:
+                    return
+                snapshot_participant(sid)
+                emit("submitted")
+                emit("room_state", room.to_dict(), to=room_code)
+                return
 
 
 @socketio.on("code_update")
