@@ -2,11 +2,26 @@ from __future__ import annotations
 
 import time
 
+import gevent
 from flask import request
 from flask_socketio import emit, join_room
 
 from extensions import socketio
 from room_manager import apply_penalty, auto_snapshot_all, get_or_create_room, get_participant, rooms, snapshot_participant
+
+
+def run_timer(room_code: str) -> None:
+    room = rooms.get(room_code)
+    if room is None or room.started_at is None:
+        return
+    while room.ended_at is None:
+        gevent.sleep(1)
+        elapsed = (time.time() - room.started_at) * 1000
+        socketio.emit("timer_tick", {"elapsed": elapsed, "ended": False}, to=room_code)
+        if elapsed >= room.duration_ms:
+            fire_event_end(room_code)
+            return
+    socketio.emit("timer_tick", {"elapsed": (time.time() - room.started_at) * 1000, "ended": True}, to=room_code)
 
 
 def fire_event_end(room_code: str) -> None:
