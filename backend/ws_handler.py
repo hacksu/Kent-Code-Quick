@@ -4,7 +4,7 @@ from flask import request
 from flask_socketio import emit, join_room
 
 from extensions import socketio
-from room_manager import get_or_create_room, get_participant, rooms
+from room_manager import apply_penalty, get_or_create_room, get_participant, rooms
 
 
 @socketio.on("join")
@@ -26,6 +26,17 @@ def handle_join(data: dict) -> None:
 
     join_room(room_code)
     emit("room_state", room.to_dict(), to=room_code)
+
+
+@socketio.on("tab_out")
+def handle_tab_out(data: dict) -> None:
+    result = apply_penalty(request.sid)
+    if not result:
+        return
+    emit("penalty", {
+        "penalty_ms": result["penalty_ms"],
+        "tab_out_count": result["tab_out_count"],
+    })
 
 
 @socketio.on("code_update")
