@@ -106,6 +106,17 @@ describe('token_assigned event', () => {
 		trigger('token_assigned', { token: 'abc123' });
 		expect(saveToken).toHaveBeenCalledWith('TEST', 'abc123');
 	});
+
+	it('starts with null myToken', () => {
+		const store = createRoomStore('TEST', 'Alice', 'participant');
+		expect(store.myToken).toBeNull();
+	});
+
+	it('sets myToken on token_assigned', () => {
+		const store = createRoomStore('TEST', 'Alice', 'participant');
+		trigger('token_assigned', { token: 'abc123' });
+		expect(store.myToken).toBe('abc123');
+	});
 });
 
 // ---- penalty ----

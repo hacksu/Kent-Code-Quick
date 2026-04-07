@@ -18,14 +18,25 @@
 
 	let html = $state('');
 	let css = $state('');
+	let activeTab = $state<'html' | 'css'>('html');
 
-	function onHtmlChange(v: string) {
-		html = v;
-		store.sendCodeUpdate(html, css);
-	}
+	// When we first find our participant data (initial load or reconnect with empty state),
+	// populate the local editor from the store.
+	$effect(() => {
+		if (html || css) return;
+		if (!store.myToken) return;
+		const me = store.participants[store.myToken];
+		if (!me) return;
+		html = me.html;
+		css = me.css;
+	});
 
-	function onCssChange(v: string) {
-		css = v;
+	function onEditorChange(v: string) {
+		if (activeTab === 'html') {
+			html = v;
+		} else {
+			css = v;
+		}
 		store.sendCodeUpdate(html, css);
 	}
 </script>
@@ -40,8 +51,31 @@
 
 	<div class="main-area">
 		<div class="editor-pane">
-			<Editor language="html" value={html} onChange={onHtmlChange} />
-			<Editor language="css" value={css} onChange={onCssChange} />
+			<div class="tab-bar">
+				<button
+					type="button"
+					class="tab-btn"
+					class:active={activeTab === 'html'}
+					onclick={() => (activeTab = 'html')}
+				>
+					HTML
+				</button>
+				<button
+					type="button"
+					class="tab-btn"
+					class:active={activeTab === 'css'}
+					onclick={() => (activeTab = 'css')}
+				>
+					CSS
+				</button>
+			</div>
+			<div class="editor-wrapper">
+				<Editor
+					language={activeTab}
+					value={activeTab === 'html' ? html : css}
+					onChange={onEditorChange}
+				/>
+			</div>
 		</div>
 		<div class="preview-pane">
 			<Preview {html} {css} />
@@ -88,10 +122,36 @@
 	}
 
 	.editor-pane {
-		display: grid;
-		grid-template-rows: 1fr 1fr;
+		display: flex;
+		flex-direction: column;
 		overflow: hidden;
 		border-right: 1px solid #ccc;
+	}
+
+	.tab-bar {
+		display: flex;
+		gap: 0.25rem;
+		padding: 0.25rem 0.5rem;
+		border-bottom: 1px solid #ccc;
+		flex-shrink: 0;
+	}
+
+	.tab-btn {
+		padding: 0.25rem 0.75rem;
+		border: 1px solid #ccc;
+		background: none;
+		cursor: pointer;
+		border-radius: 4px 4px 0 0;
+	}
+
+	.tab-btn.active {
+		background: #eee;
+		font-weight: bold;
+	}
+
+	.editor-wrapper {
+		flex: 1;
+		overflow: hidden;
 	}
 
 	.preview-pane {

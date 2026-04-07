@@ -30,6 +30,7 @@ export function createRoomStore(roomCode: string, name: string, role: string) {
 	let elapsed = $state(0);
 	let ended = $state(false);
 	let durationMs = $state(45 * 60 * 1000);
+	let myToken = $state<string | null>(null);
 
 	function emitJoin() {
 		const tok = loadToken(roomCode);
@@ -40,6 +41,7 @@ export function createRoomStore(roomCode: string, name: string, role: string) {
 
 	socket.on('token_assigned', ({ token: t }: { token: string }) => {
 		saveToken(roomCode, t);
+		myToken = t;
 	});
 
 	socket.on('room_state', (data: { participants: Record<string, Participant>; duration_ms?: number }) => {
@@ -87,6 +89,7 @@ export function createRoomStore(roomCode: string, name: string, role: string) {
 		get durationMs() { return durationMs; },
 		get timeRemaining() { return timeRemaining; },
 		get isOvertime() { return isOvertime; },
+		get myToken() { return myToken; },
 		sendCodeUpdate(html: string, css: string) {
 			socket.emit('code_update', { html, css });
 		},
