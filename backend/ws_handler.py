@@ -51,6 +51,10 @@ def handle_join(data: dict) -> None:
     if data.get("token") != token:
         emit("token_assigned", {"token": token})
 
+    if room.started_at is None:
+        room.started_at = time.time()
+        gevent.spawn(run_timer, room_code)
+
     join_room(room_code)
     emit("room_state", room.to_dict(), to=room_code)
 
