@@ -9,35 +9,45 @@
 	let {
 		language,
 		value = '',
+		readonly = false,
 		onChange,
 	}: {
 		language: 'html' | 'css';
 		value?: string;
+		readonly?: boolean;
 		onChange: (value: string) => void;
 	} = $props();
 
 	let container: HTMLDivElement;
 
 	onMount(() => {
+		let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
 		const langExtension = language === 'html' ? html() : css();
 
-		const view = new EditorView({
-			state: EditorState.create({
-				doc: value,
-				extensions: [
-					basicSetup,
-					langExtension,
-					EditorView.updateListener.of((update) => {
-						if (update.docChanged) {
-							onChange(update.state.doc.toString());
-						}
-					}),
-				],
+		const extensions = [
+			basicSetup,
+			langExtension,
+			EditorState.readOnly.of(readonly),
+			EditorView.updateListener.of((update) => {
+				if (update.docChanged) {
+					if (debounceTimer !== null) clearTimeout(debounceTimer);
+					debounceTimer = setTimeout(() => {
+						onChange(update.state.doc.toString());
+					}, 300);
+				}
 			}),
+		];
+
+		const view = new EditorView({
+			state: EditorState.create({ doc: value, extensions }),
 			parent: container,
 		});
 
-		return () => view.destroy();
+		return () => {
+			if (debounceTimer !== null) clearTimeout(debounceTimer);
+			view.destroy();
+		};
 	});
 </script>
 
