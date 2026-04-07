@@ -18,6 +18,12 @@ const mockSocket = {
 vi.mock('socket.io-client', () => ({ io: () => mockSocket }));
 vi.mock('$lib/store', () => ({ loadToken: vi.fn(() => null), saveToken: vi.fn() }));
 
+vi.mock('$lib/components/PenaltyBanner.svelte', () => ({
+	default: vi.fn().mockImplementation(function () {
+		return { destroy: vi.fn() };
+	}),
+}));
+
 // Child-component mocks
 vi.mock('$lib/components/Timer.svelte', () => ({
 	default: vi.fn().mockImplementation(function () {
@@ -169,6 +175,25 @@ describe('Room page — tab switcher', () => {
 		await fireEvent.click(htmlTab);
 		expect(htmlTab.classList.contains('active')).toBe(true);
 		expect(cssTab.classList.contains('active')).toBe(false);
+	});
+});
+
+// ---- tab-out detection ----
+
+describe('Room page — tab-out detection', () => {
+	it('emits tab_out when document becomes hidden', () => {
+		render(Page);
+		Object.defineProperty(document, 'hidden', { value: true, configurable: true });
+		document.dispatchEvent(new Event('visibilitychange'));
+		expect(mockSocket.emit).toHaveBeenCalledWith('tab_out', {});
+		Object.defineProperty(document, 'hidden', { value: false, configurable: true });
+	});
+
+	it('does not emit tab_out when document becomes visible', () => {
+		render(Page);
+		Object.defineProperty(document, 'hidden', { value: false, configurable: true });
+		document.dispatchEvent(new Event('visibilitychange'));
+		expect(mockSocket.emit).not.toHaveBeenCalledWith('tab_out', {});
 	});
 });
 

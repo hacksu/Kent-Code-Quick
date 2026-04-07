@@ -5,6 +5,7 @@
 	import Timer from '$lib/components/Timer.svelte';
 	import Editor from '$lib/components/Editor.svelte';
 	import Preview from '$lib/components/Preview.svelte';
+	import PenaltyBanner from '$lib/components/PenaltyBanner.svelte';
 
 	const roomCode = page.params.code;
 	const name = page.url.searchParams.get('name') ?? '';
@@ -31,6 +32,16 @@
 		css = me.css;
 	});
 
+	$effect(() => {
+		function handleVisibilityChange() {
+			if (document.hidden) {
+				store.sendTabOut();
+			}
+		}
+		document.addEventListener('visibilitychange', handleVisibilityChange);
+		return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+	});
+
 	function onEditorChange(v: string) {
 		if (activeTab === 'html') {
 			html = v;
@@ -43,7 +54,9 @@
 
 <div class="room-layout">
 	<div class="top-bar">
-		<div class="penalty-slot"></div>
+		<div class="penalty-slot">
+			<PenaltyBanner penalty={store.currentPenalty} />
+		</div>
 		<div class="timer-slot">
 			<Timer elapsed={store.elapsed} durationMs={store.durationMs} />
 		</div>
