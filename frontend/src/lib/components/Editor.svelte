@@ -20,6 +20,12 @@
 
 	let container: HTMLDivElement;
 
+	const noPasteCopyExtension = EditorView.domEventHandlers({
+		paste: (e) => { e.preventDefault(); return true; },
+		copy:  (e) => { e.preventDefault(); return true; },
+		cut:   (e) => { e.preventDefault(); return true; },
+	});
+
 	onMount(() => {
 		let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -28,6 +34,7 @@
 		const extensions = [
 			basicSetup,
 			langExtension,
+			noPasteCopyExtension,
 			EditorState.readOnly.of(readonly),
 			EditorView.updateListener.of((update) => {
 				if (update.docChanged) {
@@ -44,8 +51,15 @@
 			parent: container,
 		});
 
+		// Document-level capture: blocks paste/copy when editor is not focused
+		const block = (e: Event) => e.preventDefault();
+		document.addEventListener('paste', block, true);
+		document.addEventListener('copy',  block, true);
+
 		return () => {
 			if (debounceTimer !== null) clearTimeout(debounceTimer);
+			document.removeEventListener('paste', block, true);
+			document.removeEventListener('copy',  block, true);
 			view.destroy();
 		};
 	});
