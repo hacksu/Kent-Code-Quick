@@ -188,6 +188,56 @@ describe('store actions', () => {
 	});
 });
 
+// ---- timer_tick ----
+
+describe('timer_tick event', () => {
+	it('starts with elapsed 0', () => {
+		const store = createRoomStore('TEST', 'Alice', 'participant');
+		expect(store.elapsed).toBe(0);
+	});
+
+	it('starts with ended false', () => {
+		const store = createRoomStore('TEST', 'Alice', 'participant');
+		expect(store.ended).toBe(false);
+	});
+
+	it('updates elapsed on timer_tick', () => {
+		const store = createRoomStore('TEST', 'Alice', 'participant');
+		trigger('timer_tick', { elapsed: 10000, ended: false });
+		expect(store.elapsed).toBe(10000);
+	});
+
+	it('updates ended on timer_tick', () => {
+		const store = createRoomStore('TEST', 'Alice', 'participant');
+		trigger('timer_tick', { elapsed: 2700000, ended: true });
+		expect(store.ended).toBe(true);
+	});
+
+	it('timeRemaining is durationMs - elapsed', () => {
+		const store = createRoomStore('TEST', 'Alice', 'participant');
+		trigger('timer_tick', { elapsed: 60000, ended: false });
+		expect(store.timeRemaining).toBe(store.durationMs - 60000);
+	});
+
+	it('isOvertime is false when elapsed < durationMs', () => {
+		const store = createRoomStore('TEST', 'Alice', 'participant');
+		trigger('timer_tick', { elapsed: 1000, ended: false });
+		expect(store.isOvertime).toBe(false);
+	});
+
+	it('isOvertime is true when elapsed > durationMs', () => {
+		const store = createRoomStore('TEST', 'Alice', 'participant');
+		trigger('timer_tick', { elapsed: store.durationMs + 1000, ended: true });
+		expect(store.isOvertime).toBe(true);
+	});
+
+	it('updates durationMs from room_state', () => {
+		const store = createRoomStore('TEST', 'Alice', 'participant');
+		trigger('room_state', { participants: {}, duration_ms: 30 * 60 * 1000 });
+		expect(store.durationMs).toBe(30 * 60 * 1000);
+	});
+});
+
 // ---- connect ----
 
 describe('connect event', () => {

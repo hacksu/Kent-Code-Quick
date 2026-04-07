@@ -27,6 +27,9 @@ export function createRoomStore(roomCode: string, name: string, role: string) {
 	let currentPenalty = $state<PenaltyPayload | null>(null);
 	let hasSubmitted = $state(false);
 	let eventEnded = $state(false);
+	let elapsed = $state(0);
+	let ended = $state(false);
+	let durationMs = $state(45 * 60 * 1000);
 
 	function emitJoin() {
 		const tok = loadToken(roomCode);
@@ -39,8 +42,9 @@ export function createRoomStore(roomCode: string, name: string, role: string) {
 		saveToken(roomCode, t);
 	});
 
-	socket.on('room_state', (data: { participants: Record<string, Participant> }) => {
+	socket.on('room_state', (data: { participants: Record<string, Participant>; duration_ms?: number }) => {
 		participants = data.participants;
+		if (data.duration_ms !== undefined) durationMs = data.duration_ms;
 	});
 
 	socket.on('participant_update', (p: Pick<Participant, 'id' | 'name' | 'html' | 'css'>) => {
@@ -62,6 +66,14 @@ export function createRoomStore(roomCode: string, name: string, role: string) {
 		eventEnded = true;
 	});
 
+	socket.on('timer_tick', (data: { elapsed: number; ended: boolean }) => {
+		elapsed = data.elapsed;
+		ended = data.ended;
+	});
+
+	const timeRemaining = $derived(durationMs - elapsed);
+	const isOvertime = $derived(elapsed > durationMs);
+
 	socket.connect();
 
 	return {
@@ -70,6 +82,11 @@ export function createRoomStore(roomCode: string, name: string, role: string) {
 		get currentPenalty() { return currentPenalty; },
 		get hasSubmitted() { return hasSubmitted; },
 		get eventEnded() { return eventEnded; },
+		get elapsed() { return elapsed; },
+		get ended() { return ended; },
+		get durationMs() { return durationMs; },
+		get timeRemaining() { return timeRemaining; },
+		get isOvertime() { return isOvertime; },
 		sendCodeUpdate(html: string, css: string) {
 			socket.emit('code_update', { html, css });
 		},
