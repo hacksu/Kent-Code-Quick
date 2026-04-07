@@ -15,10 +15,18 @@ export interface Participant {
 	role: string;
 }
 
+export interface PenaltyPayload {
+	penalty_ms: number;
+	tab_out_count: number;
+}
+
 export function createRoomStore(roomCode: string, name: string, role: string) {
 	const socket: Socket = io({ autoConnect: false });
 
 	let participants = $state<Record<string, Participant>>({});
+	let currentPenalty = $state<PenaltyPayload | null>(null);
+	let hasSubmitted = $state(false);
+	let eventEnded = $state(false);
 
 	function emitJoin() {
 		const tok = loadToken(roomCode);
@@ -42,12 +50,37 @@ export function createRoomStore(roomCode: string, name: string, role: string) {
 		}
 	});
 
+	socket.on('penalty', (data: PenaltyPayload) => {
+		currentPenalty = data;
+	});
+
+	socket.on('submitted', () => {
+		hasSubmitted = true;
+	});
+
+	socket.on('event_end', () => {
+		eventEnded = true;
+	});
+
 	socket.connect();
 
 	return {
 		socket,
-		get participants() {
-			return participants;
-		}
+		get participants() { return participants; },
+		get currentPenalty() { return currentPenalty; },
+		get hasSubmitted() { return hasSubmitted; },
+		get eventEnded() { return eventEnded; },
+		sendCodeUpdate(html: string, css: string) {
+			socket.emit('code_update', { html, css });
+		},
+		sendTabOut() {
+			socket.emit('tab_out', {});
+		},
+		sendSubmit() {
+			socket.emit('submit', {});
+		},
+		sendEndEvent() {
+			socket.emit('end_event', {});
+		},
 	};
 }

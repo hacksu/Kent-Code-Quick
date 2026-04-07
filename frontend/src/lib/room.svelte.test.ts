@@ -108,6 +108,86 @@ describe('token_assigned event', () => {
 	});
 });
 
+// ---- penalty ----
+
+describe('penalty event', () => {
+	it('starts with null currentPenalty', () => {
+		const store = createRoomStore('TEST', 'Alice', 'participant');
+		expect(store.currentPenalty).toBeNull();
+	});
+
+	it('updates currentPenalty on penalty event', () => {
+		const store = createRoomStore('TEST', 'Alice', 'participant');
+		trigger('penalty', { penalty_ms: 5000, tab_out_count: 1 });
+		expect(store.currentPenalty).toEqual({ penalty_ms: 5000, tab_out_count: 1 });
+	});
+
+	it('replaces currentPenalty on subsequent penalty events', () => {
+		const store = createRoomStore('TEST', 'Alice', 'participant');
+		trigger('penalty', { penalty_ms: 5000, tab_out_count: 1 });
+		trigger('penalty', { penalty_ms: 30000, tab_out_count: 2 });
+		expect(store.currentPenalty?.tab_out_count).toBe(2);
+	});
+});
+
+// ---- submitted ----
+
+describe('submitted event', () => {
+	it('starts with hasSubmitted false', () => {
+		const store = createRoomStore('TEST', 'Alice', 'participant');
+		expect(store.hasSubmitted).toBe(false);
+	});
+
+	it('sets hasSubmitted true on submitted event', () => {
+		const store = createRoomStore('TEST', 'Alice', 'participant');
+		trigger('submitted', undefined);
+		expect(store.hasSubmitted).toBe(true);
+	});
+});
+
+// ---- event_end ----
+
+describe('event_end event', () => {
+	it('starts with eventEnded false', () => {
+		const store = createRoomStore('TEST', 'Alice', 'participant');
+		expect(store.eventEnded).toBe(false);
+	});
+
+	it('sets eventEnded true on event_end event', () => {
+		const store = createRoomStore('TEST', 'Alice', 'participant');
+		trigger('event_end', undefined);
+		expect(store.eventEnded).toBe(true);
+	});
+});
+
+// ---- actions ----
+
+describe('store actions', () => {
+	it('sendCodeUpdate emits code_update', () => {
+		const store = createRoomStore('TEST', 'Alice', 'participant');
+		store.sendCodeUpdate('<p>hi</p>', 'p{}');
+		expect(mockSocket.emit).toHaveBeenCalledWith('code_update', { html: '<p>hi</p>', css: 'p{}' });
+	});
+
+	it('sendTabOut emits tab_out', () => {
+		const store = createRoomStore('TEST', 'Alice', 'participant');
+		store.sendTabOut();
+		expect(mockSocket.emit).toHaveBeenCalledWith('tab_out', {});
+	});
+
+	it('sendSubmit emits submit', () => {
+		const store = createRoomStore('TEST', 'Alice', 'participant');
+		store.sendSubmit();
+		expect(mockSocket.emit).toHaveBeenCalledWith('submit', {});
+	});
+
+	it('sendEndEvent emits end_event', () => {
+		const store = createRoomStore('TEST', 'Alice', 'participant');
+		store.sendEndEvent();
+		expect(mockSocket.emit).toHaveBeenCalledWith('end_event', {});
+	});
+});
+
 // ---- connect ----
 
 describe('connect event', () => {
