@@ -14,13 +14,4 @@
 	});
 </script>
 
-<span class:overtime>{display}</span>
-
-<style>
-	span {
-		font-variant-numeric: tabular-nums;
-	}
-	.overtime {
-		color: red;
-	}
-</style>
+<span class={`tabular-nums${overtime ? ' text-red-600' : ''}`}>{display}</span>

@@ -7,7 +7,7 @@
 	import Preview from '$lib/components/Preview.svelte';
 	import PenaltyBanner from '$lib/components/PenaltyBanner.svelte';
 
-	const roomCode = page.params.code;
+	const roomCode = page.params.code!;
 	const name = page.url.searchParams.get('name') ?? '';
 	const role = page.url.searchParams.get('role') ?? 'participant';
 
@@ -52,37 +52,35 @@
 	}
 </script>
 
-<div class="room-layout">
-	<div class="top-bar">
-		<div class="penalty-slot">
+<div class="grid h-screen grid-rows-[auto_1fr_auto] overflow-hidden">
+	<div class="flex items-center justify-between border-b border-gray-300 px-4 py-2">
+		<div>
 			<PenaltyBanner penalty={store.currentPenalty} />
 		</div>
-		<div class="timer-slot">
+		<div>
 			<Timer elapsed={store.elapsed} durationMs={store.durationMs} />
 		</div>
 	</div>
 
-	<div class="main-area">
-		<div class="editor-pane">
-			<div class="tab-bar">
+	<div class="grid grid-cols-2 overflow-hidden">
+		<div class="flex flex-col overflow-hidden border-r border-gray-300">
+			<div class="flex shrink-0 gap-1 border-b border-gray-300 px-2 py-1">
 				<button
 					type="button"
-					class="tab-btn"
-					class:active={activeTab === 'html'}
+					class={`cursor-pointer rounded-t border border-gray-300 px-3 py-1 ${activeTab === 'html' ? 'bg-gray-200 font-bold' : 'bg-transparent'}`}
 					onclick={() => (activeTab = 'html')}
 				>
 					HTML
 				</button>
 				<button
 					type="button"
-					class="tab-btn"
-					class:active={activeTab === 'css'}
+					class={`cursor-pointer rounded-t border border-gray-300 px-3 py-1 ${activeTab === 'css' ? 'bg-gray-200 font-bold' : 'bg-transparent'}`}
 					onclick={() => (activeTab = 'css')}
 				>
 					CSS
 				</button>
 			</div>
-			<div class="editor-wrapper">
+			<div class="flex-1 overflow-hidden">
 				<Editor
 					language={activeTab}
 					value={activeTab === 'html' ? html : css}
@@ -91,19 +89,19 @@
 				/>
 			</div>
 		</div>
-		<div class="preview-pane">
+		<div class="overflow-hidden">
 			<Preview {html} {css} />
 		</div>
 	</div>
 
-	<div class="bottom-bar">
-		<div class="docs-slot">
+	<div class="flex items-center justify-between border-t border-gray-300 px-4 py-2">
+		<div>
 			<button type="button">Docs</button>
 		</div>
-		<div class="submit-slot">
+		<div>
 			<button
 				type="button"
-				class="submit-btn"
+				class="disabled:cursor-not-allowed disabled:opacity-50"
 				onclick={() => store.sendSubmit()}
 				disabled={store.hasSubmitted}
 			>
@@ -112,76 +110,3 @@
 		</div>
 	</div>
 </div>
-
-<style>
-	.room-layout {
-		display: grid;
-		grid-template-rows: auto 1fr auto;
-		height: 100vh;
-		overflow: hidden;
-	}
-
-	.top-bar {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding: 0.5rem 1rem;
-		border-bottom: 1px solid #ccc;
-	}
-
-	.main-area {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		overflow: hidden;
-	}
-
-	.editor-pane {
-		display: flex;
-		flex-direction: column;
-		overflow: hidden;
-		border-right: 1px solid #ccc;
-	}
-
-	.tab-bar {
-		display: flex;
-		gap: 0.25rem;
-		padding: 0.25rem 0.5rem;
-		border-bottom: 1px solid #ccc;
-		flex-shrink: 0;
-	}
-
-	.tab-btn {
-		padding: 0.25rem 0.75rem;
-		border: 1px solid #ccc;
-		background: none;
-		cursor: pointer;
-		border-radius: 4px 4px 0 0;
-	}
-
-	.tab-btn.active {
-		background: #eee;
-		font-weight: bold;
-	}
-
-	.editor-wrapper {
-		flex: 1;
-		overflow: hidden;
-	}
-
-	.preview-pane {
-		overflow: hidden;
-	}
-
-	.bottom-bar {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding: 0.5rem 1rem;
-		border-top: 1px solid #ccc;
-	}
-
-	.submit-btn:disabled {
-		opacity: 0.5;
-		cursor: not-allowed;
-	}
-</style>

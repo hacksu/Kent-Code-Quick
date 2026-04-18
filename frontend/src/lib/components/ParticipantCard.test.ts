@@ -13,6 +13,7 @@ const base = {
 	css: 'p{}',
 	submitted_at: null,
 	penalty_ms: 0,
+	copy_attempt_count: 0,
 };
 
 beforeEach(() => vi.clearAllMocks());
