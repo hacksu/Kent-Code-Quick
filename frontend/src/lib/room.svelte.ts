@@ -9,6 +9,7 @@ export interface Participant {
 	css: string;
 	penalty_ms: number;
 	tab_out_count: number;
+	copy_attempt_count: number;
 	submitted_at: number | null;
 	final_html: string | null;
 	final_css: string | null;
@@ -101,6 +102,9 @@ export function createRoomStore(roomCode: string, name: string, role: string) {
 		},
 		sendEndEvent() {
 			socket.emit('end_event', {});
+		},
+		sendCopyAttempt() {
+			socket.emit('copy_attempt', {});
 		},
 	};
 }

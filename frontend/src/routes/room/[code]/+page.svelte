@@ -87,6 +87,7 @@
 					language={activeTab}
 					value={activeTab === 'html' ? html : css}
 					onChange={onEditorChange}
+					onCopyAttempt={() => store.sendCopyAttempt()}
 				/>
 			</div>
 		</div>

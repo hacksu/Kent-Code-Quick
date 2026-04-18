@@ -11,19 +11,21 @@
 		value = '',
 		readonly = false,
 		onChange,
+		onCopyAttempt,
 	}: {
 		language: 'html' | 'css';
 		value?: string;
 		readonly?: boolean;
 		onChange: (value: string) => void;
+		onCopyAttempt?: () => void;
 	} = $props();
 
 	let container: HTMLDivElement;
 
 	const noPasteCopyExtension = EditorView.domEventHandlers({
-		paste: (e) => { e.preventDefault(); return true; },
-		copy:  (e) => { e.preventDefault(); return true; },
-		cut:   (e) => { e.preventDefault(); return true; },
+		paste: (e) => { e.preventDefault(); onCopyAttempt?.(); return true; },
+		copy:  (e) => { e.preventDefault(); onCopyAttempt?.(); return true; },
+		cut:   (e) => { e.preventDefault(); onCopyAttempt?.(); return true; },
 	});
 
 	onMount(() => {
@@ -52,7 +54,7 @@
 		});
 
 		// Document-level capture: blocks paste/copy when editor is not focused
-		const block = (e: Event) => e.preventDefault();
+		const block = (e: Event) => { e.preventDefault(); onCopyAttempt?.(); };
 		document.addEventListener('paste', block, true);
 		document.addEventListener('copy',  block, true);
 

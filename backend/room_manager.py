@@ -23,6 +23,7 @@ class Participant:
     css: str = ""
     penalty_ms: int = 0
     tab_out_count: int = 0
+    copy_attempt_count: int = 0
     submitted_at: Optional[float] = None
     final_html: Optional[str] = None
     final_css: Optional[str] = None
@@ -37,6 +38,7 @@ class Participant:
             "css": self.css,
             "penalty_ms": self.penalty_ms,
             "tab_out_count": self.tab_out_count,
+            "copy_attempt_count": self.copy_attempt_count,
             "submitted_at": self.submitted_at,
             "final_html": self.final_html,
             "final_css": self.final_css,
@@ -96,6 +98,15 @@ def apply_penalty(sid: str) -> dict:
                     "penalty_ms": participant.penalty_ms,
                     "tab_out_count": participant.tab_out_count,
                 }
+    return {}
+
+
+def record_copy_attempt(sid: str) -> dict:
+    for room in rooms.values():
+        for participant in room.participants.values():
+            if participant.sid == sid:
+                participant.copy_attempt_count += 1
+                return {"copy_attempt_count": participant.copy_attempt_count}
     return {}
 
 

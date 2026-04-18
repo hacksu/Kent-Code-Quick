@@ -7,7 +7,7 @@ from flask import request
 from flask_socketio import emit, join_room
 
 from extensions import socketio
-from room_manager import apply_penalty, auto_snapshot_all, get_or_create_room, get_participant, rooms, snapshot_participant
+from room_manager import apply_penalty, auto_snapshot_all, get_or_create_room, get_participant, record_copy_attempt, rooms, snapshot_participant
 
 
 def run_timer(room_code: str) -> None:
@@ -82,6 +82,13 @@ def handle_tab_out(data: dict) -> None:
         "penalty_ms": result["penalty_ms"],
         "tab_out_count": result["tab_out_count"],
     })
+
+
+@socketio.on("copy_attempt")
+def handle_copy_attempt(data: dict) -> None:
+    result = record_copy_attempt(request.sid)
+    if result:
+        emit("copy_attempt_ack", result)
 
 
 @socketio.on("submit")

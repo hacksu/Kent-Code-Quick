@@ -6,7 +6,7 @@
 		participant,
 		throttleMs = 500,
 	}: {
-		participant: Pick<Participant, 'name' | 'html' | 'css' | 'submitted_at' | 'penalty_ms'>;
+		participant: Pick<Participant, 'name' | 'html' | 'css' | 'submitted_at' | 'penalty_ms' | 'copy_attempt_count'>;
 		throttleMs?: number;
 	} = $props();
 
@@ -35,6 +35,9 @@
 		{#if participant.submitted_at !== null}
 			<span class="badge">submitted</span>
 		{/if}
+		{#if participant.copy_attempt_count > 0}
+			<span class="badge copy-badge">{participant.copy_attempt_count} copy</span>
+		{/if}
 	</div>
 </div>
 
@@ -62,5 +65,8 @@
 		color: white;
 		padding: 0.1rem 0.4rem;
 		border-radius: 4px;
+	}
+	.copy-badge {
+		background: orange;
 	}
 </style>
