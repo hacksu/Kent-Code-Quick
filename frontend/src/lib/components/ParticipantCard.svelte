@@ -5,9 +5,11 @@
 	let {
 		participant,
 		throttleMs = 500,
+		paused = false,
 	}: {
 		participant: Pick<Participant, 'name' | 'html' | 'css' | 'submitted_at' | 'penalty_ms' | 'copy_attempt_count'>;
 		throttleMs?: number;
+		paused?: boolean;
 	} = $props();
 
 	let displayedHtml = $state('');
@@ -15,6 +17,7 @@
 	let lastUpdate = $state(0);
 
 	$effect(() => {
+		if (paused) return;
 		const html = participant.html;
 		const css = participant.css;
 		const now = Date.now();
