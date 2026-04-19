@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
-	import { env } from '$env/dynamic/public';
 	import { createRoomStore } from '$lib/room.svelte';
 	import Timer from '$lib/components/Timer.svelte';
 	import Editor from '$lib/components/Editor.svelte';
@@ -25,7 +24,7 @@
 	const frozen = $derived(store.hasSubmitted || store.eventEnded);
 
 	let docsOpen = $state(false);
-	const DOCS_URL = (env.PUBLIC_DEVDOCS_URL ?? 'http://localhost:9292') + '/';
+	const DOCS_URL = ((import.meta.env.PUBLIC_DEVDOCS_URL as string | undefined) ?? 'http://localhost:9292') + '/';
 
 	// When we first find our participant data (initial load or reconnect with empty state),
 	// populate the local editor from the store.

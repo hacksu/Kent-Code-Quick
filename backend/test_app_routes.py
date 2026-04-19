@@ -38,7 +38,7 @@ def test_docs_proxy_no_url_is_forbidden(client):
 
 def test_docs_proxy_allowed_mdn(client):
     mock_resp = MagicMock()
-    mock_resp.content = b"<html>docs</html>"
+    mock_resp.text = "<html><head></head><body>docs</body></html>"
     mock_resp.status_code = 200
     with patch("app.http_requests.get", return_value=mock_resp) as mock_get:
         resp = client.get("/api/docs?url=https://developer.mozilla.org/en-US/docs/Web/HTML")
@@ -49,7 +49,7 @@ def test_docs_proxy_allowed_mdn(client):
 
 def test_docs_proxy_allowed_w3schools(client):
     mock_resp = MagicMock()
-    mock_resp.content = b"<html>w3</html>"
+    mock_resp.text = "<html><head></head><body>w3</body></html>"
     mock_resp.status_code = 200
     with patch("app.http_requests.get", return_value=mock_resp):
         resp = client.get("/api/docs?url=https://www.w3schools.com/html/")
