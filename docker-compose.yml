@@ -1,0 +1,20 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        PUBLIC_DEVDOCS_URL: http://localhost:9292
+    ports:
+      - "5001:5001"
+    environment:
+      ADMIN_SECRET: ${ADMIN_SECRET}
+    depends_on:
+      - devdocs
+
+  devdocs:
+    build:
+      context: .
+      dockerfile: devdocs.Dockerfile
+    ports:
+      - "9292:9292"

@@ -53,13 +53,17 @@
 	});
 </script>
 
-<div class="presenter-layout flex h-screen flex-col overflow-hidden">
-	<header class="header-bar flex shrink-0 items-center justify-between border-b border-gray-300 px-4 py-2">
-		<div>
+<div class="presenter-layout flex h-screen flex-col overflow-hidden bg-hacksu-grey">
+	<header class="header-bar flex shrink-0 items-center justify-between border-b border-white/10 bg-hacksu-grey px-4 py-2">
+		<div class="text-sm font-medium">
 			<Timer elapsed={store.elapsed} durationMs={store.durationMs} />
 		</div>
 		{#if role === 'admin'}
-			<button type="button" class="end-event-btn" onclick={() => store.sendEndEvent()}>
+			<button
+				type="button"
+				class="end-event-btn rounded bg-red-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-red-700"
+				onclick={() => store.sendEndEvent()}
+			>
 				End Event
 			</button>
 		{/if}

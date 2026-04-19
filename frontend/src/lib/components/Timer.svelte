@@ -14,4 +14,4 @@
 	});
 </script>
 
-<span class={`tabular-nums${overtime ? ' text-red-600 overtime' : ''}`}>{display}</span>
+<span class={`tabular-nums font-medium ${overtime ? 'text-red-500 overtime' : 'text-hacksu-blue'}`}>{display}</span>

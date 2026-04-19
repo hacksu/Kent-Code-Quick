@@ -1,1 +1,13 @@
 @import "tailwindcss";
+
+@theme {
+  --color-brand: #ff922f;
+  --color-brand-dark: #e07a1a;
+  --color-hacksu-blue: #4683ff;
+  --color-hacksu-green: #35c982;
+  --color-hacksu-grey: #142027;
+}
+
+.cm-editor {
+  height: 100%;
+}

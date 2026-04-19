@@ -5,6 +5,7 @@
 	import { EditorState } from '@codemirror/state';
 	import { html } from '@codemirror/lang-html';
 	import { css } from '@codemirror/lang-css';
+	import { oneDark } from '@codemirror/theme-one-dark';
 
 	let {
 		language,
@@ -35,6 +36,7 @@
 
 		const extensions = [
 			basicSetup,
+			oneDark,
 			langExtension,
 			noPasteCopyExtension,
 			EditorState.readOnly.of(readonly),

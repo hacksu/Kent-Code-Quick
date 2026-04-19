@@ -12,7 +12,7 @@ import ws_handler  # noqa: F401 — registers event handlers
 
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "..", "frontend", "build")
 
-app = Flask(__name__, static_folder=STATIC_DIR, static_url_path="")
+app = Flask(__name__)
 socketio.init_app(app, async_mode="gevent", cors_allowed_origins="*")
 
 
@@ -25,11 +25,51 @@ DOCS_ALLOWLIST = {"developer.mozilla.org", "www.w3schools.com"}
 @app.route("/api/docs")
 def docs_proxy():
     url = request.args.get("url", "")
-    hostname = urlparse(url).hostname
-    if hostname not in DOCS_ALLOWLIST:
+    parsed = urlparse(url)
+    if parsed.hostname not in DOCS_ALLOWLIST:
         return jsonify({"error": "forbidden"}), 403
-    resp = http_requests.get(url, timeout=10)
-    return Response(resp.content, status=resp.status_code, content_type="text/html")
+    resp = http_requests.get(url, timeout=10, headers={"User-Agent": "Mozilla/5.0"})
+    base_url = f"{parsed.scheme}://{parsed.netloc}/"
+    intercept_script = f"""<script>
+(function() {{
+  try {{
+    Object.defineProperty(window, 'top',    {{ get: function() {{ return window; }} }});
+    Object.defineProperty(window, 'parent', {{ get: function() {{ return window; }} }});
+    Object.defineProperty(window, 'self',   {{ get: function() {{ return window; }} }});
+    Object.defineProperty(window, 'frameElement', {{ get: function() {{ return null; }} }});
+  }} catch(e) {{}}
+  var _origin = window.location.origin;
+  function proxyUrl(href) {{
+    if (!href || href.startsWith('#') || href.startsWith('javascript:')) return href;
+    if (href.indexOf('/api/docs?url=') !== -1) return href;
+    try {{
+      var abs = new URL(href, '{base_url}').href;
+      return _origin + '/api/docs?url=' + encodeURIComponent(abs);
+    }} catch(e) {{ return href; }}
+  }}
+  window.addEventListener('click', function(e) {{
+    var a = e.target.closest('a[href]');
+    if (!a) return;
+    var href = a.getAttribute('href');
+    if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    window.location.href = proxyUrl(href);
+  }}, true);
+  document.addEventListener('DOMContentLoaded', function() {{
+    document.querySelectorAll('a[href]').forEach(function(a) {{
+      var h = a.getAttribute('href');
+      if (h && !h.startsWith('#') && !h.startsWith('javascript:') && h.indexOf('/api/docs?url=') === -1)
+        a.setAttribute('href', proxyUrl(h));
+    }});
+  }});
+}})();
+</script>"""
+    html = resp.text.replace("<head>", f'<head><base href="{base_url}">' + intercept_script, 1)
+    response = Response(html, status=resp.status_code, content_type="text/html; charset=utf-8")
+    response.headers.pop("X-Frame-Options", None)
+    response.headers.pop("Content-Security-Policy", None)
+    return response
 
 
 @app.route("/api/room/<code>/results")
