@@ -126,6 +126,30 @@ def test_serve_spa_root_returns_index(client):
         assert args[1] == "index.html"
 
 
+def test_serve_spa_room_route_returns_index(client):
+    sentinel = MagicMock()
+    with patch("app.send_from_directory", return_value=sentinel) as mock_send:
+        _call_serve_spa("room/abc123")
+        args = mock_send.call_args[0]
+        assert args[1] == "index.html"
+
+
+def test_serve_spa_presenter_route_returns_index(client):
+    sentinel = MagicMock()
+    with patch("app.send_from_directory", return_value=sentinel) as mock_send:
+        _call_serve_spa("presenter/abc123")
+        args = mock_send.call_args[0]
+        assert args[1] == "index.html"
+
+
+def test_serve_spa_deep_unknown_path_returns_index(client):
+    sentinel = MagicMock()
+    with patch("app.send_from_directory", return_value=sentinel) as mock_send:
+        _call_serve_spa("nonexistent/deep/path")
+        args = mock_send.call_args[0]
+        assert args[1] == "index.html"
+
+
 def test_serve_spa_existing_static_file(client):
     sentinel = MagicMock()
     with patch("os.path.isfile", return_value=True), \
