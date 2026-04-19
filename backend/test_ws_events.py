@@ -30,6 +30,65 @@ def join_room_as(room_code, name, role="participant"):
     return client, token
 
 
+# --- multi-client sync ---
+
+def test_two_clients_both_receive_room_state_with_both_participants():
+    clientA, tokenA = join_room_as("TEST", "Alice")
+    # Join B without using the helper so we can capture its initial messages
+    clientB = socketio.test_client(app)
+    with patch("ws_handler.gevent.spawn"):
+        clientB.emit("join", {"room_code": "TEST", "name": "Bob", "role": "participant"})
+    recvB = clientB.get_received()
+    recvA = clientA.get_received()  # picks up room_state broadcast from Bob's join
+    tokenB = next(m["args"][0]["token"] for m in recvB if m["name"] == "token_assigned")
+    stateA = next(m for m in reversed(recvA) if m["name"] == "room_state")
+    stateB = next(m for m in reversed(recvB) if m["name"] == "room_state")
+    assert tokenA in stateA["args"][0]["participants"]
+    assert tokenB in stateA["args"][0]["participants"]
+    assert tokenA in stateB["args"][0]["participants"]
+    assert tokenB in stateB["args"][0]["participants"]
+
+
+def test_code_update_from_a_reaches_b_as_participant_update():
+    clientA, _ = join_room_as("TEST", "Alice")
+    clientB, _ = join_room_as("TEST", "Bob", role="presenter")
+    clientA.get_received()
+    clientB.get_received()
+    clientA.emit("code_update", {"html": "<h1>hello</h1>", "css": "h1{}"})
+    recvB = clientB.get_received()
+    updates = [m for m in recvB if m["name"] == "participant_update"]
+    assert len(updates) == 1
+    assert updates[0]["args"][0]["html"] == "<h1>hello</h1>"
+
+
+def test_submit_reflected_in_room_state():
+    clientA, tokenA = join_room_as("TEST", "Alice")
+    clientB, _ = join_room_as("TEST", "Bob", role="presenter")
+    clientA.get_received()
+    clientB.get_received()
+    clientA.emit("submit", {})
+    recvB = clientB.get_received()
+    state = next((m for m in recvB if m["name"] == "room_state"), None)
+    assert state is not None
+    assert state["args"][0]["participants"][tokenA]["submitted_at"] is not None
+
+
+def test_reconnect_with_token_restores_state():
+    clientA, tokenA = join_room_as("TEST", "Alice")
+    room = rooms["TEST"]
+    room.participants[tokenA].html = "<p>saved</p>"
+    room.participants[tokenA].css = "p{}"
+    # Simulate reconnect: new client with existing token
+    clientA2 = socketio.test_client(app)
+    with patch("ws_handler.gevent.spawn"):
+        clientA2.emit("join", {"room_code": "TEST", "name": "Alice", "role": "participant", "token": tokenA})
+    received = clientA2.get_received()
+    state = next(m for m in received if m["name"] == "room_state")
+    participant = state["args"][0]["participants"][tokenA]
+    assert participant["html"] == "<p>saved</p>"
+    assert participant["css"] == "p{}"
+
+
 # --- handle_join edge cases ---
 
 def test_handle_join_missing_room_code_is_noop():
