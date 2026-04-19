@@ -3,10 +3,10 @@ import { render } from '@testing-library/svelte';
 
 type UpdateCallback = (update: { docChanged: boolean; state: { doc: { toString: () => string } } }) => void;
 
-const { mockHtml, mockCss, MockEditorView, MockEditorState } = vi.hoisted(() => {
+const { mockHtml, mockCss, MockEditorView, MockEditorState, MockCompartment } = vi.hoisted(() => {
 	const mockHtml = vi.fn(() => 'html-ext');
 	const mockCss = vi.fn(() => 'css-ext');
-	const MockEditorView = vi.fn().mockImplementation(function () { return { destroy: vi.fn() }; });
+	const MockEditorView = vi.fn().mockImplementation(function () { return { destroy: vi.fn(), dispatch: vi.fn() }; });
 	(MockEditorView as unknown as Record<string, unknown>).updateListener = {
 		of: vi.fn((cb: unknown) => cb),
 	};
@@ -15,12 +15,15 @@ const { mockHtml, mockCss, MockEditorView, MockEditorState } = vi.hoisted(() => 
 		create: vi.fn((opts: unknown) => opts),
 		readOnly: { of: vi.fn((val: unknown) => ({ readOnly: val })) },
 	};
-	return { mockHtml, mockCss, MockEditorView, MockEditorState };
+	const MockCompartment = vi.fn().mockImplementation(function () {
+		return { of: vi.fn((ext: unknown) => ext), reconfigure: vi.fn((ext: unknown) => ({ effects: ext })) };
+	});
+	return { mockHtml, mockCss, MockEditorView, MockEditorState, MockCompartment };
 });
 
 vi.mock('codemirror', () => ({ basicSetup: [] }));
 vi.mock('@codemirror/view', () => ({ EditorView: MockEditorView }));
-vi.mock('@codemirror/state', () => ({ EditorState: MockEditorState }));
+vi.mock('@codemirror/state', () => ({ EditorState: MockEditorState, Compartment: MockCompartment }));
 vi.mock('@codemirror/lang-html', () => ({ html: mockHtml }));
 vi.mock('@codemirror/lang-css', () => ({ css: mockCss }));
 
@@ -28,12 +31,15 @@ import Editor from './Editor.svelte';
 
 beforeEach(() => {
 	vi.clearAllMocks();
-	(MockEditorView as ReturnType<typeof vi.fn>).mockImplementation(function () { return { destroy: vi.fn() }; });
+	(MockEditorView as ReturnType<typeof vi.fn>).mockImplementation(function () { return { destroy: vi.fn(), dispatch: vi.fn() }; });
 	(MockEditorView as unknown as Record<string, unknown>).updateListener = {
 		of: vi.fn((cb: unknown) => cb),
 	};
 	(MockEditorView as unknown as Record<string, unknown>).domEventHandlers = vi.fn(() => 'no-paste-ext');
 	MockEditorState.readOnly.of = vi.fn((val: unknown) => ({ readOnly: val }));
+	(MockCompartment as ReturnType<typeof vi.fn>).mockImplementation(function () {
+		return { of: vi.fn((ext: unknown) => ext), reconfigure: vi.fn((ext: unknown) => ({ effects: ext })) };
+	});
 });
 
 describe('Editor.svelte — basic setup', () => {

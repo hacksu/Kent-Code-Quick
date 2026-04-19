@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { basicSetup } from 'codemirror';
 	import { EditorView } from '@codemirror/view';
-	import { EditorState } from '@codemirror/state';
+	import { Compartment, EditorState } from '@codemirror/state';
 	import { html } from '@codemirror/lang-html';
 	import { css } from '@codemirror/lang-css';
 	import { oneDark } from '@codemirror/theme-one-dark';
@@ -29,6 +29,8 @@
 		cut:   (e) => { e.preventDefault(); onCopyAttempt?.(); return true; },
 	});
 
+	const readOnlyCompartment = new Compartment();
+
 	onMount(() => {
 		let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -39,7 +41,7 @@
 			oneDark,
 			langExtension,
 			noPasteCopyExtension,
-			EditorState.readOnly.of(readonly),
+			readOnlyCompartment.of(EditorState.readOnly.of(readonly)),
 			EditorView.updateListener.of((update) => {
 				if (update.docChanged) {
 					if (debounceTimer !== null) clearTimeout(debounceTimer);
@@ -59,6 +61,11 @@
 		const block = (e: Event) => { e.preventDefault(); onCopyAttempt?.(); };
 		document.addEventListener('paste', block, true);
 		document.addEventListener('copy',  block, true);
+
+		// Reactively update readOnly when prop changes
+		$effect(() => {
+			view.dispatch({ effects: readOnlyCompartment.reconfigure(EditorState.readOnly.of(readonly)) });
+		});
 
 		return () => {
 			if (debounceTimer !== null) clearTimeout(debounceTimer);
