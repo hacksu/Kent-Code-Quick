@@ -96,6 +96,31 @@ def test_apply_penalty_escalates():
     assert result["penalty_ms"] == expected
 
 
+def test_apply_penalty_second_offense():
+    room = get_or_create_room("ABC")
+    get_participant(room, None, "Alice", "sid1")
+    apply_penalty("sid1")
+    result = apply_penalty("sid1")
+    assert result["tab_out_count"] == 2
+    assert result["penalty_ms"] == (_PENALTY_SCHEDULE[0] + _PENALTY_SCHEDULE[1]) * 1000
+
+
+def test_apply_penalty_seventh_and_beyond_capped_at_960s():
+    room = get_or_create_room("ABC")
+    get_participant(room, None, "Alice", "sid1")
+    # Apply 6 penalties to exhaust the schedule (indices 0-5)
+    for _ in range(6):
+        apply_penalty("sid1")
+    # 7th penalty should use last schedule entry (960s)
+    result = apply_penalty("sid1")
+    assert result["tab_out_count"] == 7
+    expected_total = sum(_PENALTY_SCHEDULE[min(i, len(_PENALTY_SCHEDULE) - 1)] for i in range(7)) * 1000
+    assert result["penalty_ms"] == expected_total
+    # 8th penalty also capped at 960s
+    result8 = apply_penalty("sid1")
+    assert result8["penalty_ms"] == expected_total + _PENALTY_SCHEDULE[-1] * 1000
+
+
 def test_apply_penalty_caps_at_schedule_max():
     room = get_or_create_room("ABC")
     get_participant(room, None, "Alice", "sid1")
@@ -180,7 +205,7 @@ def test_participant_to_dict_keys():
     p = Participant(id="1", name="Alice", sid="s1")
     d = p.to_dict()
     assert set(d.keys()) == {"id", "name", "sid", "html", "css", "penalty_ms",
-                              "tab_out_count", "submitted_at", "final_html", "final_css", "role"}
+                              "tab_out_count", "copy_attempt_count", "submitted_at", "final_html", "final_css", "role"}
 
 
 def test_room_state_to_dict_includes_participants():

@@ -6,7 +6,7 @@ import runpy
 import pytest
 from unittest.mock import patch, MagicMock
 from app import app
-from room_manager import rooms, get_or_create_room, get_participant
+from room_manager import rooms, get_or_create_room, get_participant, apply_penalty
 
 
 @pytest.fixture
@@ -78,6 +78,18 @@ def test_room_results_success(client):
     data = resp.get_json()
     assert data["code"] == "TEST"
     assert len(data["participants"]) == 1
+
+
+def test_room_results_includes_penalty_ms(client):
+    room = get_or_create_room("TEST")
+    get_participant(room, None, "Alice", "sid1")
+    apply_penalty("sid1")
+    apply_penalty("sid1")
+    resp = client.get("/api/room/TEST/results?secret=test-secret")
+    assert resp.status_code == 200
+    participants = list(resp.get_json()["participants"].values())
+    assert participants[0]["penalty_ms"] == (5 + 25) * 1000
+    assert participants[0]["tab_out_count"] == 2
 
 
 # --- SPA fallback ---

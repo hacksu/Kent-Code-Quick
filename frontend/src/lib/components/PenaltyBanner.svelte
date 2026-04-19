@@ -28,8 +28,8 @@
 </script>
 
 {#if visible && penalty}
-	<div class="rounded bg-red-700 px-3 py-1 text-sm text-white" role="alert">
+	<div class="penalty-banner rounded bg-red-700 px-3 py-1 text-sm text-white" role="alert">
 		Tab out detected! Total penalty: {penalty.penalty_ms / 1000}s
-		(tab-out #{penalty.tab_out_count}). Next: {nextPenalty}s
+		(tab-out #{penalty.tab_out_count}). next: {nextPenalty}s
 	</div>
 {/if}

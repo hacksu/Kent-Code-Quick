@@ -55,35 +55,35 @@
 	}
 </script>
 
-<div class="grid h-screen grid-rows-[auto_1fr_auto] overflow-hidden">
-	<div class="flex items-center justify-between border-b border-gray-300 px-4 py-2">
-		<div>
+<div class="room-layout grid h-screen grid-rows-[auto_1fr_auto] overflow-hidden">
+	<div class="top-bar flex items-center justify-between border-b border-gray-300 px-4 py-2">
+		<div class="penalty-slot">
 			<PenaltyBanner penalty={store.currentPenalty} />
 		</div>
-		<div>
+		<div class="timer-slot">
 			<Timer elapsed={store.elapsed} durationMs={store.durationMs} />
 		</div>
 	</div>
 
-	<div class="grid grid-cols-2 overflow-hidden">
-		<div class="flex flex-col overflow-hidden border-r border-gray-300">
-			<div class="flex shrink-0 gap-1 border-b border-gray-300 px-2 py-1">
+	<div class="main-area grid grid-cols-2 overflow-hidden">
+		<div class="editor-pane flex flex-col overflow-hidden border-r border-gray-300">
+			<div class="tab-bar flex shrink-0 gap-1 border-b border-gray-300 px-2 py-1">
 				<button
 					type="button"
-					class={`cursor-pointer rounded-t border border-gray-300 px-3 py-1 ${activeTab === 'html' ? 'bg-gray-200 font-bold' : 'bg-transparent'}`}
+					class={`tab-btn cursor-pointer rounded-t border border-gray-300 px-3 py-1 ${activeTab === 'html' ? 'active bg-gray-200 font-bold' : 'bg-transparent'}`}
 					onclick={() => (activeTab = 'html')}
 				>
 					HTML
 				</button>
 				<button
 					type="button"
-					class={`cursor-pointer rounded-t border border-gray-300 px-3 py-1 ${activeTab === 'css' ? 'bg-gray-200 font-bold' : 'bg-transparent'}`}
+					class={`tab-btn cursor-pointer rounded-t border border-gray-300 px-3 py-1 ${activeTab === 'css' ? 'active bg-gray-200 font-bold' : 'bg-transparent'}`}
 					onclick={() => (activeTab = 'css')}
 				>
 					CSS
 				</button>
 			</div>
-			<div class="flex-1 overflow-hidden">
+			<div class="editor-wrapper flex-1 overflow-hidden">
 				<Editor
 					language={activeTab}
 					value={activeTab === 'html' ? html : css}
@@ -93,16 +93,16 @@
 				/>
 			</div>
 		</div>
-		<div class="overflow-hidden">
+		<div class="preview-pane overflow-hidden">
 			<Preview {html} {css} />
 		</div>
 	</div>
 
-	<div class="flex items-center justify-between border-t border-gray-300 px-4 py-2">
-		<div>
+	<div class="bottom-bar flex items-center justify-between border-t border-gray-300 px-4 py-2">
+		<div class="docs-slot">
 			<button type="button">Docs</button>
 		</div>
-		<div>
+		<div class="submit-slot">
 			{#if store.eventEnded}
 				<span class="text-sm text-gray-500">Event ended</span>
 			{:else if store.hasSubmitted}
@@ -110,7 +110,7 @@
 			{:else}
 				<button
 					type="button"
-					class="disabled:cursor-not-allowed disabled:opacity-50"
+					class="submit-btn disabled:cursor-not-allowed disabled:opacity-50"
 					onclick={() => store.sendSubmit()}
 				>
 					Submit

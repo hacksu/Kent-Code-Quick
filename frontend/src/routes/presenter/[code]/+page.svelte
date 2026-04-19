@@ -12,8 +12,11 @@
 
 	let gridEl: HTMLDivElement;
 	let visibleTokens = $state(new Set<string>());
+	let ioAvailable = $state(false);
 
 	onMount(() => {
+		if (typeof IntersectionObserver === 'undefined') return;
+		ioAvailable = true;
 		const io = new IntersectionObserver(
 			(entries) => {
 				for (const entry of entries) {
@@ -22,13 +25,11 @@
 					if (entry.isIntersecting) visibleTokens.add(token);
 					else visibleTokens.delete(token);
 				}
-				// trigger reactivity
 				visibleTokens = new Set(visibleTokens);
 			},
 			{ root: gridEl, rootMargin: '100px' }
 		);
 
-		// Watch for cards being added/removed as participants join/leave
 		const mo = new MutationObserver((mutations) => {
 			for (const m of mutations) {
 				for (const node of m.addedNodes) {
@@ -41,7 +42,6 @@
 		});
 		mo.observe(gridEl, { childList: true });
 
-		// Observe cards already in the DOM at mount time
 		for (const el of gridEl.querySelectorAll('[data-token]')) {
 			io.observe(el);
 		}
@@ -53,13 +53,13 @@
 	});
 </script>
 
-<div class="flex h-screen flex-col overflow-hidden">
-	<header class="flex shrink-0 items-center justify-between border-b border-gray-300 px-4 py-2">
+<div class="presenter-layout flex h-screen flex-col overflow-hidden">
+	<header class="header-bar flex shrink-0 items-center justify-between border-b border-gray-300 px-4 py-2">
 		<div>
 			<Timer elapsed={store.elapsed} durationMs={store.durationMs} />
 		</div>
 		{#if role === 'admin'}
-			<button type="button" onclick={() => store.sendEndEvent()}>
+			<button type="button" class="end-event-btn" onclick={() => store.sendEndEvent()}>
 				End Event
 			</button>
 		{/if}
@@ -67,11 +67,11 @@
 
 	<div
 		bind:this={gridEl}
-		class="grid flex-1 grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4 overflow-y-auto p-4"
+		class="participant-grid grid flex-1 grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4 overflow-y-auto p-4"
 	>
 		{#each Object.entries(store.participants) as [token, participant] (participant.id)}
-			<div data-token={token}>
-				<ParticipantCard {participant} paused={!visibleTokens.has(token)} />
+			<div class="participant-item" data-token={token}>
+				<ParticipantCard {participant} paused={ioAvailable && !visibleTokens.has(token)} />
 			</div>
 		{/each}
 	</div>
