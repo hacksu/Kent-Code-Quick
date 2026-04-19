@@ -198,6 +198,19 @@ def test_fire_event_end_auto_snapshots():
     assert room.participants[token].final_html == "<p>final</p>"
 
 
+def test_timer_expiry_captures_last_code_update():
+    """final_html/css match the last code_update sent before timer fires."""
+    client, token = join_room_as("TEST", "Alice")
+    client.emit("code_update", {"html": "<h1>v1</h1>", "css": "h1{}"})
+    client.emit("code_update", {"html": "<h1>v2</h1>", "css": "h1{color:red}"})
+    client.get_received()
+    ws_handler.fire_event_end("TEST")
+    room = rooms["TEST"]
+    p = room.participants[token]
+    assert p.final_html == "<h1>v2</h1>"
+    assert p.final_css == "h1{color:red}"
+
+
 # --- run_timer ---
 
 def test_run_timer_exits_early_if_no_started_at():

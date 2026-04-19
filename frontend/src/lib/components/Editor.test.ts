@@ -103,12 +103,72 @@ describe('Editor.svelte — clipboard blocking', () => {
 		expect(e.preventDefault).toHaveBeenCalled();
 	});
 
+	it('copy handler calls preventDefault', () => {
+		render(Editor, { language: 'html', value: '', onChange: vi.fn() });
+		const handlers = (
+			(MockEditorView as unknown as Record<string, ReturnType<typeof vi.fn>>).domEventHandlers
+		).mock.calls[0][0] as Record<string, (e: Event) => void>;
+		const e = { preventDefault: vi.fn() } as unknown as Event;
+		handlers.copy(e);
+		expect(e.preventDefault).toHaveBeenCalled();
+	});
+
+	it('cut handler calls preventDefault', () => {
+		render(Editor, { language: 'html', value: '', onChange: vi.fn() });
+		const handlers = (
+			(MockEditorView as unknown as Record<string, ReturnType<typeof vi.fn>>).domEventHandlers
+		).mock.calls[0][0] as Record<string, (e: Event) => void>;
+		const e = { preventDefault: vi.fn() } as unknown as Event;
+		handlers.cut(e);
+		expect(e.preventDefault).toHaveBeenCalled();
+	});
+
+	it('CodeMirror paste handler calls onCopyAttempt', () => {
+		const onCopyAttempt = vi.fn();
+		render(Editor, { language: 'html', value: '', onChange: vi.fn(), onCopyAttempt });
+		const handlers = (
+			(MockEditorView as unknown as Record<string, ReturnType<typeof vi.fn>>).domEventHandlers
+		).mock.calls[0][0] as Record<string, (e: Event) => void>;
+		handlers.paste({ preventDefault: vi.fn() } as unknown as Event);
+		expect(onCopyAttempt).toHaveBeenCalledOnce();
+	});
+
+	it('CodeMirror copy handler calls onCopyAttempt', () => {
+		const onCopyAttempt = vi.fn();
+		render(Editor, { language: 'html', value: '', onChange: vi.fn(), onCopyAttempt });
+		const handlers = (
+			(MockEditorView as unknown as Record<string, ReturnType<typeof vi.fn>>).domEventHandlers
+		).mock.calls[0][0] as Record<string, (e: Event) => void>;
+		handlers.copy({ preventDefault: vi.fn() } as unknown as Event);
+		expect(onCopyAttempt).toHaveBeenCalledOnce();
+	});
+
 	it('adds document-level capture listeners on mount', () => {
 		const addSpy = vi.spyOn(document, 'addEventListener');
 		render(Editor, { language: 'html', value: '', onChange: vi.fn() });
 		const captureListeners = addSpy.mock.calls.filter((c) => c[2] === true).map((c) => c[0]);
 		expect(captureListeners).toContain('paste');
 		expect(captureListeners).toContain('copy');
+	});
+
+	it('document-level paste capture calls preventDefault', () => {
+		const addSpy = vi.spyOn(document, 'addEventListener');
+		render(Editor, { language: 'html', value: '', onChange: vi.fn() });
+		const pasteCall = addSpy.mock.calls.find((c) => c[0] === 'paste' && c[2] === true);
+		const listener = pasteCall?.[1] as (e: Event) => void;
+		const e = { preventDefault: vi.fn() } as unknown as Event;
+		listener(e);
+		expect(e.preventDefault).toHaveBeenCalled();
+	});
+
+	it('document-level paste capture calls onCopyAttempt', () => {
+		const addSpy = vi.spyOn(document, 'addEventListener');
+		const onCopyAttempt = vi.fn();
+		render(Editor, { language: 'html', value: '', onChange: vi.fn(), onCopyAttempt });
+		const pasteCall = addSpy.mock.calls.find((c) => c[0] === 'paste' && c[2] === true);
+		const listener = pasteCall?.[1] as (e: Event) => void;
+		listener({ preventDefault: vi.fn() } as unknown as Event);
+		expect(onCopyAttempt).toHaveBeenCalledOnce();
 	});
 
 	it('removes document-level capture listeners on destroy', () => {
