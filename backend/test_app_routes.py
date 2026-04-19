@@ -95,8 +95,10 @@ def test_room_results_includes_penalty_ms(client):
 # --- SPA fallback ---
 
 def test_main_guard_runs_socketio():
+    import os
+    app_path = os.path.join(os.path.dirname(__file__), "app.py")
     with patch("app.socketio.run") as mock_run:
-        runpy.run_path("app.py", run_name="__main__")
+        runpy.run_path(app_path, run_name="__main__")
         mock_run.assert_called_once()
         call_kwargs = mock_run.call_args
         assert call_kwargs[1].get("host") == "0.0.0.0"
