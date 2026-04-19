@@ -23,6 +23,9 @@
 
 	const frozen = $derived(store.hasSubmitted || store.eventEnded);
 
+	let docsOpen = $state(false);
+	const DOCS_URL = 'https://developer.mozilla.org/en-US/docs/Web/HTML';
+
 	// When we first find our participant data (initial load or reconnect with empty state),
 	// populate the local editor from the store.
 	$effect(() => {
@@ -55,7 +58,7 @@
 	}
 </script>
 
-<div class="room-layout grid h-screen grid-rows-[auto_1fr_auto] overflow-hidden">
+<div class="room-layout grid h-screen grid-rows-[auto_1fr_auto_auto] overflow-hidden">
 	<div class="top-bar flex items-center justify-between border-b border-gray-300 px-4 py-2">
 		<div class="penalty-slot">
 			<PenaltyBanner penalty={store.currentPenalty} />
@@ -98,9 +101,20 @@
 		</div>
 	</div>
 
+	<div class="docs-panel h-[300px] overflow-hidden border-t border-gray-300 {docsOpen ? '' : 'hidden'}">
+		<iframe
+			src="/api/docs?url={encodeURIComponent(DOCS_URL)}"
+			title="Documentation"
+			class="h-full w-full border-none"
+			sandbox="allow-scripts allow-same-origin"
+		></iframe>
+	</div>
+
 	<div class="bottom-bar flex items-center justify-between border-t border-gray-300 px-4 py-2">
 		<div class="docs-slot">
-			<button type="button">Docs</button>
+			<button type="button" onclick={() => (docsOpen = !docsOpen)}>
+				{docsOpen ? 'Hide Docs' : 'Show Docs'}
+			</button>
 		</div>
 		<div class="submit-slot">
 			{#if store.eventEnded}
