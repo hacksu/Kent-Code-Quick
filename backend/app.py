@@ -16,7 +16,9 @@ app = Flask(__name__, static_folder=STATIC_DIR, static_url_path="")
 socketio.init_app(app, async_mode="gevent", cors_allowed_origins="*")
 
 
-ADMIN_SECRET = os.environ.get("ADMIN_SECRET", "")
+ADMIN_SECRET = os.environ.get("ADMIN_SECRET")
+if not ADMIN_SECRET:
+    raise RuntimeError("ADMIN_SECRET environment variable must be set")
 DOCS_ALLOWLIST = {"developer.mozilla.org", "www.w3schools.com"}
 
 

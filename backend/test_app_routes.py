@@ -65,8 +65,7 @@ def test_room_results_wrong_secret(client):
 
 
 def test_room_results_room_not_found(client):
-    # ADMIN_SECRET defaults to "", so empty secret passes auth
-    resp = client.get("/api/room/MISSING/results?secret=")
+    resp = client.get("/api/room/MISSING/results?secret=test-secret")
     assert resp.status_code == 404
     assert resp.get_json()["error"] == "not found"
 
@@ -74,7 +73,7 @@ def test_room_results_room_not_found(client):
 def test_room_results_success(client):
     room = get_or_create_room("TEST")
     get_participant(room, None, "Alice", "sid1")
-    resp = client.get("/api/room/TEST/results?secret=")
+    resp = client.get("/api/room/TEST/results?secret=test-secret")
     assert resp.status_code == 200
     data = resp.get_json()
     assert data["code"] == "TEST"
@@ -89,7 +88,7 @@ def test_main_guard_runs_socketio():
         mock_run.assert_called_once()
         call_kwargs = mock_run.call_args
         assert call_kwargs[1].get("host") == "0.0.0.0"
-        assert call_kwargs[1].get("port") == 5000
+        assert call_kwargs[1].get("port") == 5001
 
 
 def _call_serve_spa(path):

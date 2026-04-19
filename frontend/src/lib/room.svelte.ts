@@ -31,7 +31,7 @@ export function createRoomStore(roomCode: string, name: string, role: string) {
 	let elapsed = $state(0);
 	let ended = $state(false);
 	let durationMs = $state(45 * 60 * 1000);
-	let myToken = $state<string | null>(null);
+	let myToken = $state<string | null>(loadToken(roomCode));
 
 	function emitJoin() {
 		const tok = loadToken(roomCode);
@@ -45,9 +45,12 @@ export function createRoomStore(roomCode: string, name: string, role: string) {
 		myToken = t;
 	});
 
-	socket.on('room_state', (data: { participants: Record<string, Participant>; duration_ms?: number }) => {
+	socket.on('room_state', (data: { participants: Record<string, Participant>; duration_ms?: number; ended_at?: number | null }) => {
 		participants = data.participants;
 		if (data.duration_ms !== undefined) durationMs = data.duration_ms;
+		if (data.ended_at) eventEnded = true;
+		const tok = myToken;
+		if (tok && data.participants[tok]?.submitted_at !== null) hasSubmitted = true;
 	});
 
 	socket.on('participant_update', (p: Pick<Participant, 'id' | 'name' | 'html' | 'css'>) => {

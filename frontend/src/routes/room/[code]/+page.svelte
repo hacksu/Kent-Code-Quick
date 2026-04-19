@@ -21,6 +21,8 @@
 	let css = $state('');
 	let activeTab = $state<'html' | 'css'>('html');
 
+	const frozen = $derived(store.hasSubmitted || store.eventEnded);
+
 	// When we first find our participant data (initial load or reconnect with empty state),
 	// populate the local editor from the store.
 	$effect(() => {
@@ -43,6 +45,7 @@
 	});
 
 	function onEditorChange(v: string) {
+		if (frozen) return;
 		if (activeTab === 'html') {
 			html = v;
 		} else {
@@ -84,6 +87,7 @@
 				<Editor
 					language={activeTab}
 					value={activeTab === 'html' ? html : css}
+					readonly={frozen}
 					onChange={onEditorChange}
 					onCopyAttempt={() => store.sendCopyAttempt()}
 				/>
@@ -99,14 +103,19 @@
 			<button type="button">Docs</button>
 		</div>
 		<div>
-			<button
-				type="button"
-				class="disabled:cursor-not-allowed disabled:opacity-50"
-				onclick={() => store.sendSubmit()}
-				disabled={store.hasSubmitted}
-			>
-				{store.hasSubmitted ? 'Submitted' : 'Submit'}
-			</button>
+			{#if store.eventEnded}
+				<span class="text-sm text-gray-500">Event ended</span>
+			{:else if store.hasSubmitted}
+				<span class="text-sm text-green-600">Submitted</span>
+			{:else}
+				<button
+					type="button"
+					class="disabled:cursor-not-allowed disabled:opacity-50"
+					onclick={() => store.sendSubmit()}
+				>
+					Submit
+				</button>
+			{/if}
 		</div>
 	</div>
 </div>
