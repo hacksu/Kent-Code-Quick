@@ -18,7 +18,7 @@ const base = {
 
 beforeEach(() => vi.clearAllMocks());
 
-describe('ParticipantCard.svelte — rendering', () => {
+describe('ParticipantCard.svelte - rendering', () => {
 	it('shows participant name', () => {
 		const { container } = render(ParticipantCard, { participant: base });
 		expect(container.querySelector('.name')?.textContent).toBe('Alice');
@@ -43,7 +43,7 @@ describe('ParticipantCard.svelte — rendering', () => {
 	});
 });
 
-describe('ParticipantCard.svelte — throttle', () => {
+describe('ParticipantCard.svelte - throttle', () => {
 	it('renders initial html immediately', () => {
 		vi.useFakeTimers();
 		vi.setSystemTime(1000);

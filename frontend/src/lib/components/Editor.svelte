@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { basicSetup } from 'codemirror';
-	import { EditorView } from '@codemirror/view';
+	import { EditorView, keymap } from '@codemirror/view';
 	import { Compartment, EditorState } from '@codemirror/state';
+	import { indentWithTab } from '@codemirror/commands';
 	import { html } from '@codemirror/lang-html';
 	import { css } from '@codemirror/lang-css';
 	import { oneDark } from '@codemirror/theme-one-dark';
@@ -30,41 +31,56 @@
 	});
 
 	const readOnlyCompartment = new Compartment();
+	const langCompartment = new Compartment();
 
 	onMount(() => {
 		let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-
-		const langExtension = language === 'html' ? html() : css();
-
-		const extensions = [
-			basicSetup,
-			oneDark,
-			langExtension,
-			noPasteCopyExtension,
-			readOnlyCompartment.of(EditorState.readOnly.of(readonly)),
-			EditorView.updateListener.of((update) => {
-				if (update.docChanged) {
-					if (debounceTimer !== null) clearTimeout(debounceTimer);
-					debounceTimer = setTimeout(() => {
-						onChange(update.state.doc.toString());
-					}, 300);
-				}
-			}),
-		];
+		let lastReportedValue = value;
 
 		const view = new EditorView({
-			state: EditorState.create({ doc: value, extensions }),
+			state: EditorState.create({
+				doc: value,
+				extensions: [
+					basicSetup,
+					oneDark,
+					keymap.of([indentWithTab]),
+					langCompartment.of(language === 'html' ? html() : css()),
+					noPasteCopyExtension,
+					readOnlyCompartment.of(EditorState.readOnly.of(readonly)),
+					EditorView.updateListener.of((update) => {
+						if (update.docChanged) {
+							const v = update.state.doc.toString();
+							lastReportedValue = v;
+							if (debounceTimer !== null) clearTimeout(debounceTimer);
+							debounceTimer = setTimeout(() => onChange(v), 300);
+						}
+					}),
+				],
+			}),
 			parent: container,
 		});
 
-		// Document-level capture: blocks paste/copy when editor is not focused
 		const block = (e: Event) => { e.preventDefault(); onCopyAttempt?.(); };
 		document.addEventListener('paste', block, true);
 		document.addEventListener('copy',  block, true);
 
-		// Reactively update readOnly when prop changes
 		$effect(() => {
 			view.dispatch({ effects: readOnlyCompartment.reconfigure(EditorState.readOnly.of(readonly)) });
+		});
+
+		$effect(() => {
+			const langExt = language === 'html' ? html() : css();
+			view.dispatch({ effects: langCompartment.reconfigure(langExt) });
+		});
+
+		// Sync external value changes (tab switch) without triggering onChange
+		$effect(() => {
+			if (value !== lastReportedValue) {
+				lastReportedValue = value;
+				view.dispatch({
+					changes: { from: 0, to: view.state.doc.length, insert: value },
+				});
+			}
 		});
 
 		return () => {

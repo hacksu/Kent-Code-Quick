@@ -19,4 +19,4 @@ COPY backend/ ./backend/
 COPY --from=frontend-builder /app/frontend/build ./frontend/build
 
 EXPOSE 5001
-CMD ["uv", "run", "python", "backend/app.py"]
+CMD ["uv", "run", "python", "-u", "backend/app.py"]

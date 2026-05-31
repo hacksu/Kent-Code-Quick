@@ -8,7 +8,11 @@ services:
     ports:
       - "5001:5001"
     environment:
-      ADMIN_SECRET: ${ADMIN_SECRET}
+      SESSION_SECRET: ${SESSION_SECRET}
+      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID}
+      DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET}
+      DISCORD_ADMIN_ROLE_ID: ${DISCORD_ADMIN_ROLE_ID}
+      DISCORD_GUILD_ID: ${DISCORD_GUILD_ID}
     depends_on:
       - devdocs
 

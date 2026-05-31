@@ -11,7 +11,7 @@ afterEach(() => {
 	vi.useRealTimers();
 });
 
-describe('PenaltyBanner — visibility', () => {
+describe('PenaltyBanner - visibility', () => {
 	it('renders nothing when penalty is null', () => {
 		const { container } = render(PenaltyBanner, { penalty: null });
 		expect(container.querySelector('.penalty-banner')).toBeNull();
@@ -47,7 +47,7 @@ describe('PenaltyBanner — visibility', () => {
 	});
 });
 
-describe('PenaltyBanner — content', () => {
+describe('PenaltyBanner - content', () => {
 	it('shows the total penalty in seconds', () => {
 		const { container } = render(PenaltyBanner, {
 			penalty: { penalty_ms: 25000, tab_out_count: 2 },
@@ -82,7 +82,7 @@ describe('PenaltyBanner — content', () => {
 	});
 });
 
-describe('PenaltyBanner — timer reset', () => {
+describe('PenaltyBanner - timer reset', () => {
 	it('resets the dismiss timer when a new penalty arrives', async () => {
 		const { container, rerender } = render(PenaltyBanner, {
 			penalty: { penalty_ms: 5000, tab_out_count: 1 },
@@ -95,7 +95,7 @@ describe('PenaltyBanner — timer reset', () => {
 		flushSync();
 		vi.advanceTimersByTime(3000);
 		flushSync();
-		// 3000ms after new penalty — should still be visible
+		// 3000ms after new penalty - should still be visible
 		expect(container.querySelector('.penalty-banner')).toBeTruthy();
 	});
 });

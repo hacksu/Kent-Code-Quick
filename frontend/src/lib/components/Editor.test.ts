@@ -42,7 +42,7 @@ beforeEach(() => {
 	});
 });
 
-describe('Editor.svelte — basic setup', () => {
+describe('Editor.svelte - basic setup', () => {
 	it('mounts a CodeMirror EditorView on mount', () => {
 		render(Editor, { language: 'html', value: '', onChange: vi.fn() });
 		expect(MockEditorView).toHaveBeenCalledOnce();
@@ -73,7 +73,7 @@ describe('Editor.svelte — basic setup', () => {
 	});
 });
 
-describe('Editor.svelte — readonly prop', () => {
+describe('Editor.svelte - readonly prop', () => {
 	it('passes readOnly false by default', () => {
 		render(Editor, { language: 'html', value: '', onChange: vi.fn() });
 		expect(MockEditorState.readOnly.of).toHaveBeenCalledWith(false);
@@ -85,7 +85,7 @@ describe('Editor.svelte — readonly prop', () => {
 	});
 });
 
-describe('Editor.svelte — clipboard blocking', () => {
+describe('Editor.svelte - clipboard blocking', () => {
 	it('registers domEventHandlers extension for paste/copy/cut', () => {
 		render(Editor, { language: 'html', value: '', onChange: vi.fn() });
 		expect(
@@ -187,7 +187,7 @@ describe('Editor.svelte — clipboard blocking', () => {
 	});
 });
 
-describe('Editor.svelte — debounced onChange', () => {
+describe('Editor.svelte - debounced onChange', () => {
 	function renderWithUpdateCapture(onChange: ReturnType<typeof vi.fn>) {
 		let captured: UpdateCallback | null = null;
 		(MockEditorView as unknown as Record<string, unknown>).updateListener = {

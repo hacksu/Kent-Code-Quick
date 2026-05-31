@@ -3,85 +3,138 @@ from __future__ import annotations
 import time
 
 import gevent
-from flask import request
+from flask import request, session
 from flask_socketio import emit, join_room
 
 from extensions import socketio
-from room_manager import apply_penalty, auto_snapshot_all, get_or_create_room, get_participant, record_copy_attempt, rooms, snapshot_participant
+from game_manager import (
+    add_to_lobby,
+    apply_penalty,
+    end_game,
+    get_or_create_game,
+    get_participant_by_sid,
+    record_copy_attempt,
+    reset_game,
+    snapshot_participant,
+    start_game,
+)
+import game_manager
+
+LOBBY_ROOM = "lobby"
+GAME_ROOM = "game"
 
 
-def run_timer(room_code: str) -> None:
-    room = rooms.get(room_code)
-    if room is None or room.started_at is None:
+def _run_timer() -> None:
+    g = game_manager.game
+    if g is None or g.started_at is None:
         return
-    while room.ended_at is None:
+    while g.ended_at is None:
         gevent.sleep(1)
-        elapsed = (time.time() - room.started_at) * 1000
-        socketio.emit("timer_tick", {"elapsed": elapsed, "ended": False}, to=room_code)
-        if elapsed >= room.duration_ms:
-            fire_event_end(room_code)
+        elapsed = (time.time() - g.started_at) * 1000
+        socketio.emit("timer_tick", {"elapsed": elapsed, "ended": False}, to=GAME_ROOM)
+        if elapsed >= g.duration_ms:
+            _fire_event_end()
             return
-    socketio.emit("timer_tick", {"elapsed": (time.time() - room.started_at) * 1000, "ended": True}, to=room_code)
-
-
-def fire_event_end(room_code: str) -> None:
-    """Called by run_timer when elapsed >= duration_ms."""
-    room = rooms.get(room_code)
-    if room is None:
-        return
-    auto_snapshot_all(room)
-    socketio.emit("event_end", room.to_dict(), to=room_code)
-
-
-@socketio.on("join")
-def handle_join(data: dict) -> None:
-    room_code = data.get("room_code")
-    if not room_code:
-        return
-
-    room = get_or_create_room(room_code)
-    token, participant = get_participant(
-        room,
-        data.get("token"),
-        data.get("name", "Anonymous"),
-        request.sid,
-        data.get("role", "participant"),
+    socketio.emit(
+        "timer_tick",
+        {"elapsed": (time.time() - g.started_at) * 1000, "ended": True},
+        to=GAME_ROOM,
     )
+
+
+def _fire_event_end() -> None:
+    g = game_manager.game
+    if g is None:
+        return
+    end_game(g)
+    socketio.emit("event_end", g.to_dict(), to=GAME_ROOM)
+
+
+@socketio.on("join_lobby")
+def handle_join_lobby(data: dict) -> None:
+    g = get_or_create_game()
+    if g.status != "waiting":
+        emit("game_locked")
+        return
+
+    token, _ = add_to_lobby(g, data.get("token"), data.get("name", "Anonymous"), request.sid)
 
     if data.get("token") != token:
         emit("token_assigned", {"token": token})
 
-    if room.started_at is None:
-        room.started_at = time.time()
-        gevent.spawn(run_timer, room_code)
+    join_room(LOBBY_ROOM)
+    socketio.emit("lobby_update", {"lobby_count": len(g.lobby)}, to=LOBBY_ROOM)
 
-    join_room(room_code)
-    emit("room_state", room.to_dict(), to=room_code)
+
+@socketio.on("join_game")
+def handle_join_game(data: dict) -> None:
+    g = game_manager.game
+    if g is None or g.status == "ended":
+        emit("game_locked")
+        return
+    token = data.get("token")
+    if not token or token not in g.participants:
+        emit("game_locked")
+        return
+    participant = g.participants[token]
+    participant.sid = request.sid
+    join_room(GAME_ROOM)
+    emit("game_state", g.to_dict())
+
+
+@socketio.on("watch_game")
+def handle_watch_game(data: dict) -> None:
+    if not session.get("is_admin"):
+        return
+    join_room(GAME_ROOM)
+    join_room(LOBBY_ROOM)
+    g = get_or_create_game()
+    emit("game_state", g.to_dict())
+
+
+@socketio.on("start_game")
+def handle_start_game(data: dict) -> None:
+    if not session.get("is_admin"):
+        return
+    g = get_or_create_game()
+    if g.status != "waiting":
+        return
+    if "duration_ms" in data:
+        g.duration_ms = int(data["duration_ms"])
+    lobby_entries = list(g.lobby.items())
+    start_game(g)
+    gevent.spawn(_run_timer)
+    for token, _ in lobby_entries:
+        if token in g.participants:
+            participant = g.participants[token]
+            socketio.emit("game_start", {"token": token}, to=participant.sid)
+    socketio.emit("game_state", g.to_dict(), to=GAME_ROOM)
 
 
 @socketio.on("end_event")
 def handle_end_event(data: dict) -> None:
-    sid = request.sid
-    for room_code, room in rooms.items():
-        for participant in room.participants.values():
-            if participant.sid == sid:
-                if participant.role != "admin":
-                    return
-                room.ended_at = time.time()
-                auto_snapshot_all(room)
-                socketio.emit("event_end", room.to_dict(), to=room_code)
-                return
+    if not session.get("is_admin"):
+        return
+    g = game_manager.game
+    if g is None or g.status != "active":
+        return
+    end_game(g)
+    socketio.emit("event_end", g.to_dict(), to=GAME_ROOM)
+
+
+@socketio.on("reset_game")
+def handle_reset_game(data: dict) -> None:
+    if not session.get("is_admin"):
+        return
+    reset_game()
+    socketio.emit("game_reset", {})
 
 
 @socketio.on("tab_out")
 def handle_tab_out(data: dict) -> None:
     result = apply_penalty(request.sid)
-    if not result:
-        return
-    emit("penalty", {
-        "penalty_ms": result["penalty_ms"],
-        "tab_out_count": result["tab_out_count"],
-    })
+    if result:
+        emit("penalty", result)
 
 
 @socketio.on("copy_attempt")
@@ -93,32 +146,41 @@ def handle_copy_attempt(data: dict) -> None:
 
 @socketio.on("submit")
 def handle_submit(data: dict) -> None:
-    sid = request.sid
-    for room_code, room in rooms.items():
-        for participant in room.participants.values():
-            if participant.sid == sid:
-                if participant.submitted_at is not None:
-                    return
-                snapshot_participant(sid)
-                emit("submitted")
-                emit("room_state", room.to_dict(), to=room_code)
-                return
+    pair = get_participant_by_sid(request.sid)
+    if not pair:
+        return
+    token, participant = pair
+    if participant.submitted_at is not None:
+        return
+    snapshot_participant(request.sid)
+    emit("submitted")
+    g = game_manager.game
+    if g:
+        socketio.emit(
+            "participant_update",
+            {"token": token, **participant.to_dict()},
+            to=GAME_ROOM,
+        )
 
 
 @socketio.on("code_update")
 def handle_code_update(data: dict) -> None:
-    sid = request.sid
-    for room_code, room in rooms.items():
-        for participant in room.participants.values():
-            if participant.sid == sid:
-                if participant.submitted_at is not None:
-                    return
-                participant.html = data.get("html", participant.html)
-                participant.css = data.get("css", participant.css)
-                emit("participant_update", {
-                    "id": participant.id,
-                    "name": participant.name,
-                    "html": participant.html,
-                    "css": participant.css,
-                }, to=room_code)
-                return
+    pair = get_participant_by_sid(request.sid)
+    if not pair:
+        return
+    token, participant = pair
+    if participant.submitted_at is not None:
+        return
+    participant.html = data.get("html", participant.html)
+    participant.css = data.get("css", participant.css)
+    socketio.emit(
+        "participant_update",
+        {
+            "token": token,
+            "id": participant.id,
+            "name": participant.name,
+            "html": participant.html,
+            "css": participant.css,
+        },
+        to=GAME_ROOM,
+    )

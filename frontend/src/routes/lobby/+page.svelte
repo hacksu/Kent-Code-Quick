@@ -1,0 +1,84 @@
+<script lang="ts">
+	import { onMount } from 'svelte';
+	import { io, type Socket } from 'socket.io-client';
+	import { loadToken, saveToken } from '$lib/store';
+
+	let lobbyCount = $state(0);
+	let locked = $state(false);
+	let username = $state('');
+	let socket: Socket;
+
+	onMount(async () => {
+		const resp = await fetch('/api/auth/me');
+		if (!resp.ok) {
+			window.location.href = '/';
+			return;
+		}
+		const { discord_username: name } = await resp.json();
+		username = name;
+
+		socket = io({ autoConnect: false });
+		const storedToken = loadToken();
+
+		socket.on('connect', () => {
+			socket.emit('join_lobby', { name, token: storedToken ?? undefined });
+		});
+
+		socket.on('token_assigned', ({ token }: { token: string }) => {
+			saveToken(token);
+		});
+
+		socket.on('lobby_update', ({ lobby_count }: { lobby_count: number }) => {
+			lobbyCount = lobby_count;
+		});
+
+		socket.on('game_start', ({ token }: { token: string }) => {
+			saveToken(token);
+			window.location.href = '/play';
+		});
+
+		socket.on('game_locked', () => {
+			locked = true;
+		});
+
+		socket.connect();
+
+		return () => socket.disconnect();
+	});
+</script>
+
+<div class="flex min-h-screen flex-col items-center justify-center gap-8 bg-hacksu-grey p-4 text-white">
+	{#if locked}
+		<div class="text-center">
+			<p class="text-xl font-semibold text-gray-300">Game in progress</p>
+			<p class="mt-2 text-sm text-gray-500">Check back when the next round starts.</p>
+			<a href="/" data-sveltekit-reload class="mt-4 inline-block text-sm text-brand hover:underline">Back to home</a>
+		</div>
+	{:else}
+		<div class="text-center">
+
+			<h1 class="text-2xl font-bold">Waiting for the admin to start</h1>
+			{#if username}
+				<p class="mt-1 text-base font-medium text-brand">{username}</p>
+			{/if}
+			<p class="mt-2 text-sm text-gray-400">
+				{lobbyCount > 0 ? `${lobbyCount} player${lobbyCount !== 1 ? 's' : ''} in the lobby` : "You're the first one here!"}
+			</p>
+		</div>
+		<div class="flex gap-1">
+			{#each [0, 1, 2] as i (i)}
+				<div
+					class="h-3 w-3 rounded-full bg-brand"
+					style="animation: bounce 1.2s ease-in-out {i * 0.2}s infinite"
+				></div>
+			{/each}
+		</div>
+	{/if}
+</div>
+
+<style>
+	@keyframes bounce {
+		0%, 100% { transform: translateY(0); opacity: 0.4; }
+		50% { transform: translateY(-10px); opacity: 1; }
+	}
+</style>

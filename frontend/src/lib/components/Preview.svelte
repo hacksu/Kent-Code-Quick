@@ -1,16 +1,19 @@
 <script lang="ts">
 	let { html, css }: { html: string; css: string } = $props();
 
-	const previewUrl = $derived.by(() => {
-		const doc = `<!DOCTYPE html><html><head><style>${css}</style></head><body>${html}</body></html>`;
-		const blob = new Blob([doc], { type: 'text/html' });
-		return URL.createObjectURL(blob);
-	});
+	let iframe: HTMLIFrameElement;
 
 	$effect(() => {
-		const url = previewUrl;
-		return () => URL.revokeObjectURL(url);
+		if (!iframe?.contentDocument) return;
+		const doc = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+			* { box-sizing: border-box; }
+			body { margin: 8px; font-family: sans-serif; }
+			${css}
+		</style></head><body>${html}</body></html>`;
+		iframe.contentDocument.open();
+		iframe.contentDocument.write(doc);
+		iframe.contentDocument.close();
 	});
 </script>
 
-<iframe sandbox="allow-scripts" src={previewUrl} title="preview" class="w-full h-full border-none"></iframe>
+<iframe bind:this={iframe} title="preview" class="w-full h-full border-none bg-white"></iframe>

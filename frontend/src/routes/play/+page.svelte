@@ -1,37 +1,31 @@
 <script lang="ts">
-	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
-	import { createRoomStore } from '$lib/room.svelte';
+	import { createPlayStore } from '$lib/game.svelte';
+	import { loadToken } from '$lib/store';
 	import Timer from '$lib/components/Timer.svelte';
 	import Editor from '$lib/components/Editor.svelte';
 	import Preview from '$lib/components/Preview.svelte';
 	import PenaltyBanner from '$lib/components/PenaltyBanner.svelte';
 
-	const roomCode = page.params.code!;
-	const name = page.url.searchParams.get('name') ?? '';
-	const role = page.url.searchParams.get('role') ?? 'participant';
-
-	if (!name) {
+	const token = loadToken();
+	if (!token) {
 		goto('/');
 	}
 
-	const store = createRoomStore(roomCode, name || 'anonymous', role);
+	const store = createPlayStore(token!);
 
 	let html = $state('');
 	let css = $state('');
 	let activeTab = $state<'html' | 'css'>('html');
+	let docsOpen = $state(false);
 
 	const frozen = $derived(store.hasSubmitted || store.eventEnded);
 
-	let docsOpen = $state(false);
 	const DOCS_URL = ((import.meta.env.PUBLIC_DEVDOCS_URL as string | undefined) ?? 'http://localhost:9292') + '/';
 
-	// When we first find our participant data (initial load or reconnect with empty state),
-	// populate the local editor from the store.
 	$effect(() => {
 		if (html || css) return;
-		if (!store.myToken) return;
-		const me = store.participants[store.myToken];
+		const me = store.myParticipant;
 		if (!me) return;
 		html = me.html;
 		css = me.css;
@@ -39,9 +33,7 @@
 
 	$effect(() => {
 		function handleVisibilityChange() {
-			if (document.hidden) {
-				store.sendTabOut();
-			}
+			if (document.hidden) store.sendTabOut();
 		}
 		document.addEventListener('visibilitychange', handleVisibilityChange);
 		return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
@@ -49,11 +41,7 @@
 
 	function onEditorChange(v: string) {
 		if (frozen) return;
-		if (activeTab === 'html') {
-			html = v;
-		} else {
-			css = v;
-		}
+		if (activeTab === 'html') { html = v; } else { css = v; }
 		store.sendCodeUpdate(html, css);
 	}
 </script>
@@ -75,16 +63,12 @@
 					type="button"
 					class={`tab-btn cursor-pointer rounded px-3 py-1 text-sm font-medium transition-colors ${activeTab === 'html' ? 'active bg-white/15 text-white' : 'text-gray-400 hover:text-white'}`}
 					onclick={() => (activeTab = 'html')}
-				>
-					HTML
-				</button>
+				>HTML</button>
 				<button
 					type="button"
 					class={`tab-btn cursor-pointer rounded px-3 py-1 text-sm font-medium transition-colors ${activeTab === 'css' ? 'active bg-white/15 text-white' : 'text-gray-400 hover:text-white'}`}
 					onclick={() => (activeTab = 'css')}
-				>
-					CSS
-				</button>
+				>CSS</button>
 			</div>
 			<div class="editor-wrapper flex-1 overflow-hidden">
 				<Editor
@@ -102,24 +86,16 @@
 	</div>
 
 	<div class="docs-panel h-[300px] overflow-hidden border-t border-gray-300 {docsOpen ? '' : 'hidden'}">
-		<iframe
-			src={DOCS_URL}
-			title="Documentation"
-			class="h-full w-full border-none"
-			sandbox="allow-scripts allow-same-origin allow-forms"
-		></iframe>
+		<iframe src={DOCS_URL} title="Documentation" class="h-full w-full border-none" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
 	</div>
 
 	<div class="bottom-bar flex items-center justify-between border-t border-white/10 bg-hacksu-grey px-4 py-2">
-		<div class="docs-slot">
-			<button
-				type="button"
-				class="rounded border border-white/20 px-3 py-1 text-sm text-gray-400 hover:border-white/40 hover:text-white"
-				onclick={() => (docsOpen = !docsOpen)}
-			>
-				{docsOpen ? 'Hide Docs' : 'Show Docs'}
-			</button>
-		</div>
+		<button
+			type="button"
+			class="rounded border border-white/20 px-3 py-1 text-sm text-gray-400 hover:border-white/40 hover:text-white"
+			onclick={() => (docsOpen = !docsOpen)}
+		>{docsOpen ? 'Hide Docs' : 'Show Docs'}</button>
+
 		<div class="submit-slot">
 			{#if store.eventEnded}
 				<span class="text-sm text-gray-400">Event ended</span>
@@ -128,11 +104,9 @@
 			{:else}
 				<button
 					type="button"
-					class="submit-btn rounded bg-hacksu-green px-4 py-1.5 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+					class="submit-btn rounded bg-hacksu-green px-4 py-1.5 text-sm font-semibold text-white hover:opacity-90"
 					onclick={() => store.sendSubmit()}
-				>
-					Submit
-				</button>
+				>Submit</button>
 			{/if}
 		</div>
 	</div>
