@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { createWatchStore } from '$lib/game.svelte';
 	import Timer from '$lib/components/Timer.svelte';
+	import kcqLogo from '$lib/assets/images/kcq_logo.svg';
 
 	let username = $state<string | null>(null);
 	let authed = $state(false);
@@ -41,11 +42,14 @@
 	</div>
 {:else}
 	<div class="flex min-h-screen flex-col bg-hacksu-grey text-white">
-		<header class="flex items-center justify-between border-b border-white/10 px-6 py-3">
-			<h1 class="text-lg font-bold">Kent Code Quick: Admin</h1>
+		<header class="flex items-center justify-between border-b border-gray-700/50 bg-hacksu-grey/80 px-6 py-3 backdrop-blur-sm">
+			<div class="flex items-center gap-3">
+				<img src={kcqLogo} alt="Kent Code Quick" class="h-8 w-auto" />
+				<h1 class="text-lg font-bold">Kent Code Quick <span class="text-gray-400">Admin</span></h1>
+			</div>
 			<div class="flex items-center gap-4">
 				<span class="text-sm text-gray-400">{username}</span>
-				<a href="/watch" class="text-sm text-brand hover:underline">Live View</a>
+				<a href="/watch" class="text-sm text-hacksu-blue hover:underline">Live View</a>
 				<button
 					type="button"
 					onclick={() => fetch('/api/auth/logout', { method: 'POST' }).then(() => { window.location.href = '/'; })}

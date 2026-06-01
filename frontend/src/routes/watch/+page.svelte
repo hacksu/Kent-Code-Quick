@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { createWatchStore } from '$lib/game.svelte';
+	import kcqLogo from '$lib/assets/images/kcq_logo.svg';
 	import ParticipantCard from '$lib/components/ParticipantCard.svelte';
 	import ParticipantFocus from '$lib/components/ParticipantFocus.svelte';
 	import Timer from '$lib/components/Timer.svelte';
@@ -86,8 +87,11 @@
 	</div>
 {:else}
 	<div class="flex h-screen flex-col overflow-hidden bg-hacksu-grey">
-		<header class="flex shrink-0 items-center justify-between border-b border-white/10 px-4 py-2">
-			<Timer elapsed={store.elapsed} durationMs={store.durationMs} />
+		<header class="flex shrink-0 items-center justify-between border-b border-gray-700/50 bg-hacksu-grey/80 px-4 py-2 backdrop-blur-sm">
+			<div class="flex items-center gap-3">
+				<img src={kcqLogo} alt="Kent Code Quick" class="h-7 w-auto" />
+				<Timer elapsed={store.elapsed} durationMs={store.durationMs} />
+			</div>
 			<div class="flex items-center gap-3">
 				{#if store.gameStatus === 'active'}
 					<button

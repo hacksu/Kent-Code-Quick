@@ -1,11 +1,23 @@
 @import "tailwindcss";
 
 @theme {
-  --color-brand: #ff922f;
-  --color-brand-dark: #e07a1a;
+  /* HacKSU brand palette */
   --color-hacksu-blue: #4683ff;
   --color-hacksu-green: #35c982;
+  --color-hacksu-purple: #ab52cb;
   --color-hacksu-grey: #142027;
+
+  /* Accent maps to the HacKSU blue so every `brand` usage is on-brand */
+  --color-brand: #4683ff;
+  --color-brand-dark: #3570e6;
+}
+
+html,
+body {
+  background-color: var(--color-hacksu-grey);
+  color: #fff;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .cm-editor {

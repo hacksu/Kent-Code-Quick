@@ -1,5 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import kcqLogo from '$lib/assets/images/kcq_logo.svg';
+	import discordIcon from '$lib/assets/images/logos/discord.svg';
+	import ParticleBackground from '$lib/components/ParticleBackground.svelte';
+	import Footer from '$lib/components/Footer.svelte';
 
 	const DISCORD_CLIENT_ID = '1415050533281988759';
 
@@ -31,23 +35,34 @@
 	}
 </script>
 
+<ParticleBackground />
+
 {#if checking}
-	<div class="flex min-h-screen items-center justify-center bg-hacksu-grey">
-		<div class="h-6 w-6 animate-spin rounded-full border-2 border-white/20 border-t-white"></div>
+	<div class="relative z-10 flex min-h-screen items-center justify-center">
+		<div class="h-6 w-6 animate-spin rounded-full border-2 border-white/20 border-t-hacksu-green"></div>
 	</div>
 {:else}
-	<div class="flex min-h-screen items-center justify-center bg-hacksu-grey p-4">
-		<div class="w-full max-w-sm text-center">
-			<h1 class="mb-2 text-2xl font-bold text-white">Kent Code Quick</h1>
-			<p class="mb-8 text-sm text-gray-400">Sign in with Discord to continue</p>
+	<div class="relative z-10 flex min-h-screen flex-col">
+		<div class="flex flex-1 flex-col items-center justify-center px-4 text-white">
+			<img class="mb-8 w-[40vw] max-w-[360px]" src={kcqLogo} alt="Kent Code Quick" />
 
-			<button
-				type="button"
-				onclick={login}
-				class="w-full rounded-lg bg-[#5865F2] px-4 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90"
-			>
-				Login with Discord
-			</button>
+			<h1 class="text-center text-3xl font-bold sm:text-4xl">Kent Code Quick</h1>
+			<p class="mt-3 max-w-md text-center text-lg text-gray-300">
+				HacKSU's live front-end coding competition.
+			</p>
+
+			<div class="mt-10 w-full max-w-sm">
+				<button
+					type="button"
+					onclick={login}
+					class="mt-4 flex w-full cursor-pointer items-center justify-center gap-3 rounded-lg bg-hacksu-green px-4 py-3.5 text-base font-bold text-white transition-colors hover:bg-hacksu-green/90"
+				>
+					<img src={discordIcon} alt="" class="h-6 w-6 brightness-0 invert" />
+					Login with Discord
+				</button>
+			</div>
 		</div>
+
+		<Footer />
 	</div>
 {/if}

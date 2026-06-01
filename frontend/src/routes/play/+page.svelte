@@ -40,7 +40,7 @@
 		function handleBlur() {
 			// window.blur also fires when focus moves into one of our own iframes
 			// (the docs panel or the preview pane). That isn't a tab-out, so ignore
-			// it — only penalize when focus left the page entirely (alt+tab to another
+			// it - only penalize when focus left the page entirely (alt+tab to another
 			// app or window), in which case activeElement is not an iframe.
 			if (document.activeElement?.tagName === 'IFRAME') return;
 			store.sendTabOut();
@@ -73,7 +73,7 @@
 	</div>
 
 	<div class="main-area grid grid-cols-2 overflow-hidden">
-		<div class="editor-pane flex flex-col overflow-hidden border-r border-gray-300">
+		<div class="editor-pane flex flex-col overflow-hidden border-r border-white/10">
 			<div class="tab-bar flex shrink-0 gap-1 border-b border-white/10 bg-hacksu-grey px-2 py-1">
 				<button
 					type="button"
@@ -106,7 +106,7 @@
 		</div>
 	</div>
 
-	<div class="docs-panel h-[300px] overflow-hidden border-t border-gray-300 {docsOpen ? '' : 'hidden'}">
+	<div class="docs-panel h-[300px] overflow-hidden border-t border-white/10 {docsOpen ? '' : 'hidden'}">
 		<iframe src={DOCS_URL} title="Documentation" class="h-full w-full border-none" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
 	</div>
 

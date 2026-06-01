@@ -2,6 +2,8 @@
 	import { onMount } from 'svelte';
 	import { io, type Socket } from 'socket.io-client';
 	import { loadToken, saveToken } from '$lib/store';
+	import kcqLogo from '$lib/assets/images/kcq_logo.svg';
+	import ParticleBackground from '$lib/components/ParticleBackground.svelte';
 
 	let lobbyCount = $state(0);
 	let locked = $state(false);
@@ -31,12 +33,15 @@
 	});
 </script>
 
-<div class="flex min-h-screen flex-col items-center justify-center gap-8 bg-hacksu-grey p-4 text-white">
+<ParticleBackground />
+
+<div class="relative z-10 flex min-h-screen flex-col items-center justify-center gap-8 p-4 text-white">
+	<img class="w-[34vw] max-w-[260px]" src={kcqLogo} alt="Kent Code Quick" />
 	{#if locked}
 		<div class="text-center">
 			<p class="text-xl font-semibold text-gray-300">Game in progress</p>
 			<p class="mt-2 text-sm text-gray-500">Check back when the next round starts.</p>
-			<a href="/" data-sveltekit-reload class="mt-4 inline-block text-sm text-brand hover:underline">Back to home</a>
+			<a href="/" data-sveltekit-reload class="mt-4 inline-block text-sm text-hacksu-blue hover:underline">Back to home</a>
 		</div>
 	{:else}
 		<div class="text-center">
@@ -52,7 +57,7 @@
 		<div class="flex gap-1">
 			{#each [0, 1, 2] as i (i)}
 				<div
-					class="h-3 w-3 rounded-full bg-brand"
+					class="h-3 w-3 rounded-full bg-hacksu-green"
 					style="animation: bounce 1.2s ease-in-out {i * 0.2}s infinite"
 				></div>
 			{/each}
