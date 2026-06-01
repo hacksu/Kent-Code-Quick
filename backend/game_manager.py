@@ -1,17 +1,10 @@
 from __future__ import annotations
 
-import json
-import os
 import secrets
-import tempfile
-import threading
 import time
 import uuid
 from dataclasses import dataclass, field
 from typing import Optional, Tuple
-
-BACKUP_FILE = "game_backup.json"
-BACKUP_INTERVAL = 30
 
 _PENALTY_SCHEDULE = [5, 25, 60, 120, 240, 480, 960]
 
@@ -177,20 +170,3 @@ def snapshot_participant(sid: str) -> None:
     participant.final_css = participant.css
     participant.final_js = participant.js
     participant.submitted_at = time.time()
-
-
-def _backup_loop() -> None:
-    while True:
-        time.sleep(BACKUP_INTERVAL)
-        if game is None:
-            continue
-        data = game.to_dict()
-        dir_ = os.path.dirname(os.path.abspath(BACKUP_FILE)) or "."
-        with tempfile.NamedTemporaryFile("w", dir=dir_, delete=False, suffix=".tmp") as f:
-            json.dump(data, f)
-            tmp_path = f.name
-        os.replace(tmp_path, BACKUP_FILE)
-
-
-_backup_thread = threading.Thread(target=_backup_loop, daemon=True, name="game-backup")
-_backup_thread.start()
