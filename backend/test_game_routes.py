@@ -29,10 +29,10 @@ def set_admin_session(client):
         sess["discord_username"] = "Admin"
 
 
-def test_get_game_returns_none_when_no_game(client):
+def test_get_game_defaults_to_waiting_when_no_game(client):
     resp = client.get("/api/game")
     assert resp.status_code == 200
-    assert resp.get_json()["status"] == "none"
+    assert resp.get_json()["status"] == "waiting"
 
 
 def test_get_game_returns_current_status(client):
