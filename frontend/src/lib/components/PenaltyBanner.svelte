@@ -22,14 +22,18 @@
 	});
 
 	const nextPenalty = $derived.by(() => {
-		const step = penalty?.tab_out_count ?? 0;
+		const step = penalty?.count ?? 0;
 		return PENALTY_STEPS[Math.min(step, PENALTY_STEPS.length - 1)];
 	});
 </script>
 
 {#if visible && penalty}
 	<div class="penalty-banner rounded bg-red-700 px-3 py-1 text-sm text-white" role="alert">
-		Tab out detected! Total penalty: {penalty.penalty_ms / 1000}s
-		(tab-out #{penalty.tab_out_count}). next: {nextPenalty}s
+		{#if penalty.type === 'copy'}
+			Copy attempt! +{PENALTY_STEPS[Math.min((penalty.count - 1), PENALTY_STEPS.length - 1)]}s penalty.
+		{:else}
+			Tab out detected! +{PENALTY_STEPS[Math.min((penalty.count - 1), PENALTY_STEPS.length - 1)]}s penalty.
+		{/if}
+		Total: {penalty.penalty_ms / 1000}s. Next: {nextPenalty}s
 	</div>
 {/if}
