@@ -13,12 +13,14 @@
 		language,
 		value = '',
 		readonly = false,
+		blockCopyPaste = true,
 		onChange,
 		onCopyAttempt,
 	}: {
 		language: 'html' | 'css' | 'js';
 		value?: string;
 		readonly?: boolean;
+		blockCopyPaste?: boolean;
 		onChange: (value: string) => void;
 		onCopyAttempt?: () => void;
 	} = $props();
@@ -26,9 +28,9 @@
 	let container: HTMLDivElement;
 
 	const noPasteCopyExtension = EditorView.domEventHandlers({
-		paste: (e) => { e.preventDefault(); onCopyAttempt?.(); return true; },
-		copy:  (e) => { e.preventDefault(); onCopyAttempt?.(); return true; },
-		cut:   (e) => { e.preventDefault(); onCopyAttempt?.(); return true; },
+		paste: (e) => { if (!blockCopyPaste) return false; e.preventDefault(); onCopyAttempt?.(); return true; },
+		copy:  (e) => { if (!blockCopyPaste) return false; e.preventDefault(); onCopyAttempt?.(); return true; },
+		cut:   (e) => { if (!blockCopyPaste) return false; e.preventDefault(); onCopyAttempt?.(); return true; },
 	});
 
 	const readOnlyCompartment = new Compartment();
@@ -62,8 +64,10 @@
 		});
 
 		const block = (e: Event) => { e.preventDefault(); onCopyAttempt?.(); };
-		document.addEventListener('paste', block, true);
-		document.addEventListener('copy',  block, true);
+		if (blockCopyPaste) {
+			document.addEventListener('paste', block, true);
+			document.addEventListener('copy',  block, true);
+		}
 
 		$effect(() => {
 			view.dispatch({ effects: readOnlyCompartment.reconfigure(EditorState.readOnly.of(readonly)) });
@@ -93,8 +97,10 @@
 
 		return () => {
 			if (debounceTimer !== null) clearTimeout(debounceTimer);
-			document.removeEventListener('paste', block, true);
-			document.removeEventListener('copy',  block, true);
+			if (blockCopyPaste) {
+				document.removeEventListener('paste', block, true);
+				document.removeEventListener('copy',  block, true);
+			}
 			view.destroy();
 		};
 	});
