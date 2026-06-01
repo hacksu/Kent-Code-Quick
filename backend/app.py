@@ -50,7 +50,7 @@ def get_config():
 @app.route("/api/auth/dev-login")
 def dev_login():
     # Dev-only escape hatch. Fail closed: only available when NODE_ENV is set.
-    if not os.environ.get("NODE_ENV"):
+    if os.environ.get("NODE_ENV") != "development":
         return jsonify({"error": "forbidden"}), 403
     name = request.args.get("name", "TestPlayer")
     is_admin = request.args.get("admin", "0") == "1"

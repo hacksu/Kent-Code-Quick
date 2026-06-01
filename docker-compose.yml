@@ -9,6 +9,7 @@ services:
       DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET}
       DISCORD_ADMIN_ROLE_ID: ${DISCORD_ADMIN_ROLE_ID}
       DISCORD_GUILD_ID: ${DISCORD_GUILD_ID}
+      NODE_ENV: ${NODE_ENV}
     volumes:
       # Persist each event's built participant documents to the host on event end.
       - ./results:/app/results
