@@ -188,7 +188,7 @@ describe('Editor.svelte - clipboard blocking', () => {
 });
 
 describe('Editor.svelte - debounced onChange', () => {
-	function renderWithUpdateCapture(onChange: ReturnType<typeof vi.fn>) {
+	function renderWithUpdateCapture(onChange: (value: string) => void) {
 		let captured: UpdateCallback | null = null;
 		(MockEditorView as unknown as Record<string, unknown>).updateListener = {
 			of: vi.fn((cb: UpdateCallback) => { captured = cb; return cb; }),

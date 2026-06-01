@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { PenaltyPayload } from '$lib/room.svelte';
+	import type { PenaltyPayload } from '$lib/game.svelte';
 
 	const PENALTY_STEPS = [5, 25, 60, 120, 240, 480, 960];
 

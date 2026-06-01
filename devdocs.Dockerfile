@@ -22,7 +22,7 @@ COPY devdocs-boot.ru /devdocs/config.ru
 COPY devdocs-root-tmpl.js.erb /devdocs/assets/javascripts/templates/pages/root_tmpl.js.erb
 COPY devdocs-app.erb /devdocs/views/app.erb
 
-RUN thor docs:download html css javascript && \
+RUN thor docs:download html css javascript dom && \
     rm -rf /tmp
 
 EXPOSE 9292

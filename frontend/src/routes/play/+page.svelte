@@ -16,7 +16,8 @@
 
 	let html = $state('');
 	let css = $state('');
-	let activeTab = $state<'html' | 'css'>('html');
+	let js = $state('');
+	let activeTab = $state<'html' | 'css' | 'js'>('html');
 	let docsOpen = $state(false);
 
 	const frozen = $derived(store.hasSubmitted || store.eventEnded);
@@ -24,11 +25,12 @@
 	const DOCS_URL = ((import.meta.env.PUBLIC_DEVDOCS_URL as string | undefined) ?? 'http://localhost:9292') + '/';
 
 	$effect(() => {
-		if (html || css) return;
+		if (html || css || js) return;
 		const me = store.myParticipant;
 		if (!me) return;
 		html = me.html;
 		css = me.css;
+		js = me.js;
 	});
 
 	$effect(() => {
@@ -41,8 +43,10 @@
 
 	function onEditorChange(v: string) {
 		if (frozen) return;
-		if (activeTab === 'html') { html = v; } else { css = v; }
-		store.sendCodeUpdate(html, css);
+		if (activeTab === 'html') { html = v; }
+		else if (activeTab === 'css') { css = v; }
+		else { js = v; }
+		store.sendCodeUpdate(html, css, js);
 	}
 </script>
 
@@ -69,11 +73,16 @@
 					class={`tab-btn cursor-pointer rounded px-3 py-1 text-sm font-medium transition-colors ${activeTab === 'css' ? 'active bg-white/15 text-white' : 'text-gray-400 hover:text-white'}`}
 					onclick={() => (activeTab = 'css')}
 				>CSS</button>
+				<button
+					type="button"
+					class={`tab-btn cursor-pointer rounded px-3 py-1 text-sm font-medium transition-colors ${activeTab === 'js' ? 'active bg-white/15 text-white' : 'text-gray-400 hover:text-white'}`}
+					onclick={() => (activeTab = 'js')}
+				>JS</button>
 			</div>
 			<div class="editor-wrapper flex-1 overflow-hidden">
 				<Editor
 					language={activeTab}
-					value={activeTab === 'html' ? html : css}
+					value={activeTab === 'html' ? html : activeTab === 'css' ? css : js}
 					readonly={frozen}
 					onChange={onEditorChange}
 					onCopyAttempt={() => store.sendCopyAttempt()}
@@ -81,7 +90,7 @@
 			</div>
 		</div>
 		<div class="preview-pane overflow-hidden">
-			<Preview {html} {css} />
+			<Preview {html} {css} {js} />
 		</div>
 	</div>
 

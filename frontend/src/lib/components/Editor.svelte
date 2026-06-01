@@ -6,6 +6,7 @@
 	import { indentWithTab } from '@codemirror/commands';
 	import { html } from '@codemirror/lang-html';
 	import { css } from '@codemirror/lang-css';
+	import { javascript } from '@codemirror/lang-javascript';
 	import { oneDark } from '@codemirror/theme-one-dark';
 
 	let {
@@ -15,7 +16,7 @@
 		onChange,
 		onCopyAttempt,
 	}: {
-		language: 'html' | 'css';
+		language: 'html' | 'css' | 'js';
 		value?: string;
 		readonly?: boolean;
 		onChange: (value: string) => void;
@@ -44,7 +45,7 @@
 					basicSetup,
 					oneDark,
 					keymap.of([indentWithTab]),
-					langCompartment.of(language === 'html' ? html() : css()),
+					langCompartment.of(language === 'html' ? html() : language === 'css' ? css() : javascript()),
 					noPasteCopyExtension,
 					readOnlyCompartment.of(EditorState.readOnly.of(readonly)),
 					EditorView.updateListener.of((update) => {
@@ -52,7 +53,7 @@
 							const v = update.state.doc.toString();
 							lastReportedValue = v;
 							if (debounceTimer !== null) clearTimeout(debounceTimer);
-							debounceTimer = setTimeout(() => onChange(v), 300);
+							debounceTimer = setTimeout(() => { debounceTimer = null; onChange(v); }, 300);
 						}
 					}),
 				],
@@ -69,13 +70,20 @@
 		});
 
 		$effect(() => {
-			const langExt = language === 'html' ? html() : css();
+			const langExt = language === 'html' ? html() : language === 'css' ? css() : javascript();
 			view.dispatch({ effects: langCompartment.reconfigure(langExt) });
 		});
 
-		// Sync external value changes (tab switch) without triggering onChange
+		// Sync external value changes (tab switch) without triggering onChange.
+		// Flush any pending debounce first so unsaved typed content isn't lost.
 		$effect(() => {
 			if (value !== lastReportedValue) {
+				if (debounceTimer !== null) {
+					clearTimeout(debounceTimer);
+					debounceTimer = null;
+					const unsaved = view.state.doc.toString();
+					if (unsaved !== value) onChange(unsaved);
+				}
 				lastReportedValue = value;
 				view.dispatch({
 					changes: { from: 0, to: view.state.doc.length, insert: value },

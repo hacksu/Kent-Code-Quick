@@ -173,6 +173,7 @@ def handle_code_update(data: dict) -> None:
         return
     participant.html = data.get("html", participant.html)
     participant.css = data.get("css", participant.css)
+    participant.js = data.get("js", participant.js)
     socketio.emit(
         "participant_update",
         {
@@ -181,6 +182,7 @@ def handle_code_update(data: dict) -> None:
             "name": participant.name,
             "html": participant.html,
             "css": participant.css,
+            "js": participant.js,
         },
         to=GAME_ROOM,
     )

@@ -11,6 +11,7 @@ const base = {
 	name: 'Alice',
 	html: '<p>hi</p>',
 	css: 'p{}',
+	js: '',
 	submitted_at: null,
 	penalty_ms: 0,
 	copy_attempt_count: 0,
@@ -43,22 +44,9 @@ describe('ParticipantCard.svelte - rendering', () => {
 	});
 });
 
-describe('ParticipantCard.svelte - throttle', () => {
-	it('renders initial html immediately', () => {
-		vi.useFakeTimers();
-		vi.setSystemTime(1000);
-		const { container } = render(ParticipantCard, {
-			participant: base,
-			throttleMs: 500,
-		});
-		// Initial render at t=1000, lastUpdate=0, 1000-0 >= 500 so it renders
-		expect(container.querySelector('.name')?.textContent).toBe('Alice');
-		vi.useRealTimers();
-	});
-
-	it('uses throttleMs default of 500', () => {
+describe('ParticipantCard.svelte - reactivity', () => {
+	it('renders participant name immediately', () => {
 		const { container } = render(ParticipantCard, { participant: base });
-		// Just verify it renders without error when throttleMs is omitted
-		expect(container.querySelector('.participant-card')).toBeTruthy();
+		expect(container.querySelector('.name')?.textContent).toBe('Alice');
 	});
 });

@@ -9,7 +9,7 @@ from flask import Flask, jsonify, redirect, request, send_from_directory, sessio
 import requests as http_requests
 from extensions import socketio
 import game_manager
-from game_manager import create_game, end_game, reset_game
+from game_manager import create_game, end_game
 
 import ws_handler  # noqa: F401
 
@@ -42,13 +42,15 @@ DOCS_ALLOWLIST = {"developer.mozilla.org", "www.w3schools.com"}
 
 @app.route("/api/auth/dev-login")
 def dev_login():
-    if os.environ.get("FLASK_ENV") == "production":
+    # Dev-only escape hatch. Fail closed: only available when NODE_ENV is set.
+    if not os.environ.get("NODE_ENV"):
         return jsonify({"error": "forbidden"}), 403
     name = request.args.get("name", "TestPlayer")
+    is_admin = request.args.get("admin", "0") == "1"
     session["discord_id"] = f"dev-{name}"
     session["discord_username"] = name
-    session["is_admin"] = False
-    return redirect("/lobby")
+    session["is_admin"] = is_admin
+    return redirect("/admin" if is_admin else "/lobby")
 
 
 @app.route("/api/auth/exchange")

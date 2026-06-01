@@ -32,12 +32,14 @@ class Participant:
     sid: str
     html: str = ""
     css: str = ""
+    js: str = ""
     penalty_ms: int = 0
     tab_out_count: int = 0
     copy_attempt_count: int = 0
     submitted_at: Optional[float] = None
     final_html: Optional[str] = None
     final_css: Optional[str] = None
+    final_js: Optional[str] = None
 
     def to_dict(self) -> dict:
         return {
@@ -45,12 +47,14 @@ class Participant:
             "name": self.name,
             "html": self.html,
             "css": self.css,
+            "js": self.js,
             "penalty_ms": self.penalty_ms,
             "tab_out_count": self.tab_out_count,
             "copy_attempt_count": self.copy_attempt_count,
             "submitted_at": self.submitted_at,
             "final_html": self.final_html,
             "final_css": self.final_css,
+            "final_js": self.final_js,
         }
 
 
@@ -160,6 +164,7 @@ def auto_snapshot_all(g: GameState) -> None:
         if participant.submitted_at is None:
             participant.final_html = participant.html
             participant.final_css = participant.css
+            participant.final_js = participant.js
             participant.submitted_at = time.time()
 
 
@@ -170,6 +175,7 @@ def snapshot_participant(sid: str) -> None:
     _, participant = result
     participant.final_html = participant.html
     participant.final_css = participant.css
+    participant.final_js = participant.js
     participant.submitted_at = time.time()
 
 

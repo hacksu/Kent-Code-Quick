@@ -6,12 +6,14 @@ export interface Participant {
 	name: string;
 	html: string;
 	css: string;
+	js: string;
 	penalty_ms: number;
 	tab_out_count: number;
 	copy_attempt_count: number;
 	submitted_at: number | null;
 	final_html: string | null;
 	final_css: string | null;
+	final_js: string | null;
 }
 
 export interface PenaltyPayload {
@@ -73,7 +75,7 @@ export function createPlayStore(token: string) {
 		get durationMs() { return durationMs; },
 		get timeRemaining() { return durationMs - elapsed; },
 		get myParticipant() { return participants[token] ?? null; },
-		sendCodeUpdate(html: string, css: string) { socket.emit('code_update', { html, css }); },
+		sendCodeUpdate(html: string, css: string, js: string) { socket.emit('code_update', { html, css, js }); },
 		sendTabOut() { socket.emit('tab_out', {}); },
 		sendSubmit() { socket.emit('submit', {}); },
 		sendCopyAttempt() { socket.emit('copy_attempt', {}); },

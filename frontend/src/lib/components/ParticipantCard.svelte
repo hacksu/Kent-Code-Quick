@@ -4,34 +4,27 @@
 
 	let {
 		participant,
-		throttleMs = 500,
 		paused = false,
 	}: {
-		participant: Pick<Participant, 'name' | 'html' | 'css' | 'submitted_at' | 'penalty_ms' | 'copy_attempt_count'>;
-		throttleMs?: number;
+		participant: Pick<Participant, 'name' | 'html' | 'css' | 'js' | 'submitted_at' | 'penalty_ms' | 'copy_attempt_count'>;
 		paused?: boolean;
 	} = $props();
 
 	let displayedHtml = $state('');
 	let displayedCss = $state('');
-	let lastUpdate = $state(0);
+	let displayedJs = $state('');
 
 	$effect(() => {
 		if (paused) return;
-		const html = participant.html;
-		const css = participant.css;
-		const now = Date.now();
-		if (now - lastUpdate >= throttleMs) {
-			displayedHtml = html;
-			displayedCss = css;
-			lastUpdate = now;
-		}
+		displayedHtml = participant.html;
+		displayedCss = participant.css;
+		displayedJs = participant.js;
 	});
 </script>
 
 <div class="flex h-full w-full flex-col overflow-hidden bg-white/5">
 	<div class="min-h-0 flex-1 overflow-hidden">
-		<Preview html={displayedHtml} css={displayedCss} />
+		<Preview html={displayedHtml} css={displayedCss} js={displayedJs} />
 	</div>
 	<div class="flex shrink-0 items-center gap-1.5 border-t border-white/10 bg-hacksu-grey px-2 py-1">
 		<span class="min-w-0 flex-1 truncate text-sm font-medium text-gray-200">{participant.name}</span>

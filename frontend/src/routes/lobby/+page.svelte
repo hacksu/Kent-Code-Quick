@@ -8,42 +8,26 @@
 	let username = $state('');
 	let socket: Socket;
 
-	onMount(async () => {
-		const resp = await fetch('/api/auth/me');
-		if (!resp.ok) {
-			window.location.href = '/';
-			return;
-		}
-		const { discord_username: name } = await resp.json();
-		username = name;
+	onMount(() => {
+		fetch('/api/auth/me').then(async (resp) => {
+			if (!resp.ok) { window.location.href = '/'; return; }
+			const { discord_username: name } = await resp.json();
+			username = name;
 
-		socket = io({ autoConnect: false });
-		const storedToken = loadToken();
+			socket = io({ autoConnect: false });
+			const storedToken = loadToken();
 
-		socket.on('connect', () => {
-			socket.emit('join_lobby', { name, token: storedToken ?? undefined });
+			socket.on('connect', () => {
+				socket.emit('join_lobby', { name, token: storedToken ?? undefined });
+			});
+			socket.on('token_assigned', ({ token }: { token: string }) => { saveToken(token); });
+			socket.on('lobby_update', ({ lobby_count }: { lobby_count: number }) => { lobbyCount = lobby_count; });
+			socket.on('game_start', ({ token }: { token: string }) => { saveToken(token); window.location.href = '/play'; });
+			socket.on('game_locked', () => { locked = true; });
+			socket.connect();
 		});
 
-		socket.on('token_assigned', ({ token }: { token: string }) => {
-			saveToken(token);
-		});
-
-		socket.on('lobby_update', ({ lobby_count }: { lobby_count: number }) => {
-			lobbyCount = lobby_count;
-		});
-
-		socket.on('game_start', ({ token }: { token: string }) => {
-			saveToken(token);
-			window.location.href = '/play';
-		});
-
-		socket.on('game_locked', () => {
-			locked = true;
-		});
-
-		socket.connect();
-
-		return () => socket.disconnect();
+		return () => { if (socket) socket.disconnect(); };
 	});
 </script>
 
