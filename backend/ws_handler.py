@@ -133,15 +133,40 @@ def handle_reset_game(data: dict) -> None:
 @socketio.on("tab_out")
 def handle_tab_out(data: dict) -> None:
     result = apply_penalty(request.sid)
-    if result:
-        emit("penalty", result)
+    if not result:
+        return
+    emit("penalty", result)
+    pair = get_participant_by_sid(request.sid)
+    if pair:
+        token, participant = pair
+        socketio.emit(
+            "participant_update",
+            {
+                "token": token,
+                "penalty_ms": participant.penalty_ms,
+                "tab_out_count": participant.tab_out_count,
+            },
+            to=GAME_ROOM,
+        )
 
 
 @socketio.on("copy_attempt")
 def handle_copy_attempt(data: dict) -> None:
     result = record_copy_attempt(request.sid)
-    if result:
-        emit("copy_attempt_ack", result)
+    if not result:
+        return
+    emit("copy_attempt_ack", result)
+    pair = get_participant_by_sid(request.sid)
+    if pair:
+        token, participant = pair
+        socketio.emit(
+            "participant_update",
+            {
+                "token": token,
+                "copy_attempt_count": participant.copy_attempt_count,
+            },
+            to=GAME_ROOM,
+        )
 
 
 @socketio.on("submit")
