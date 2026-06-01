@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import os
+import re
 import secrets
 import time
 import uuid
+from datetime import datetime
 from dataclasses import dataclass, field
 from typing import Optional, Tuple
 
@@ -121,6 +124,10 @@ def end_game(g: GameState) -> None:
     auto_snapshot_all(g)
     g.status = "ended"
     g.ended_at = time.time()
+    try:
+        save_results(g)
+    except OSError as exc:
+        print(f"[results] failed to save built documents: {exc}")
 
 
 def get_participant_by_sid(sid: str) -> Optional[Tuple[str, Participant]]:
@@ -170,3 +177,46 @@ def snapshot_participant(sid: str) -> None:
     participant.final_css = participant.css
     participant.final_js = participant.js
     participant.submitted_at = time.time()
+
+
+def _safe_filename(name: str) -> str:
+    cleaned = re.sub(r"[^A-Za-z0-9_-]+", "_", name).strip("_")
+    return cleaned or "participant"
+
+
+def _build_document(name: str, html: str, css: str, js: str) -> str:
+    """Compose a single standalone, runnable HTML document from a
+    participant's html/css/js -- the same pieces the live preview renders."""
+    safe_js = js.replace("</script>", "<\\/script>")
+    return (
+        "<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"utf-8\">\n"
+        f"<title>{name}</title>\n"
+        f"<style>{css}</style>\n"
+        "</head>\n<body>\n"
+        f"{html}\n"
+        f"<script>{safe_js}</script>\n"
+        "</body>\n</html>\n"
+    )
+
+
+def save_results(g: GameState) -> Optional[str]:
+    """Write each participant's final built document (html+css+js) to disk.
+
+    Called once when the event ends. Each event gets its own timestamped
+    directory so successive rounds don't overwrite each other. Returns the
+    output directory, or None if there were no participants to save.
+    """
+    if not g.participants:
+        return None
+    results_dir = os.environ.get("RESULTS_DIR", "results")
+    out_dir = os.path.join(results_dir, f"event-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
+    os.makedirs(out_dir, exist_ok=True)
+    for token, p in g.participants.items():
+        html = p.final_html if p.final_html is not None else p.html
+        css = p.final_css if p.final_css is not None else p.css
+        js = p.final_js if p.final_js is not None else p.js
+        doc = _build_document(p.name, html, css, js)
+        fname = f"{_safe_filename(p.name)}-{token}.html"
+        with open(os.path.join(out_dir, fname), "w", encoding="utf-8") as f:
+            f.write(doc)
+    return out_dir
