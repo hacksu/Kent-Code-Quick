@@ -32,14 +32,6 @@ def _run_timer() -> None:
         gevent.sleep(1)
         elapsed = (time.time() - g.started_at) * 1000
         socketio.emit("timer_tick", {"elapsed": elapsed, "ended": False}, to=GAME_ROOM)
-        if elapsed >= g.duration_ms:
-            _fire_event_end()
-            return
-    socketio.emit(
-        "timer_tick",
-        {"elapsed": (time.time() - g.started_at) * 1000, "ended": True},
-        to=GAME_ROOM,
-    )
 
 
 def _fire_event_end() -> None:
