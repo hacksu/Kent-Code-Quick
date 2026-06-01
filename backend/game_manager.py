@@ -155,8 +155,10 @@ def record_copy_attempt(sid: str) -> Optional[dict]:
     if not result:
         return None
     _, participant = result
+    idx = min(participant.copy_attempt_count, len(_PENALTY_SCHEDULE) - 1)
+    participant.penalty_ms += _PENALTY_SCHEDULE[idx] * 1000
     participant.copy_attempt_count += 1
-    return {"copy_attempt_count": participant.copy_attempt_count}
+    return {"penalty_ms": participant.penalty_ms, "copy_attempt_count": participant.copy_attempt_count}
 
 
 def auto_snapshot_all(g: GameState) -> None:

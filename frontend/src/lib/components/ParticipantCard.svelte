@@ -32,7 +32,7 @@
 			<span data-testid="submitted-badge" class="shrink-0 rounded bg-hacksu-green px-1.5 py-0.5 text-xs text-white">submitted</span>
 		{/if}
 		{#if participant.copy_attempt_count > 0}
-			<span class="shrink-0 rounded bg-orange-500 px-1.5 py-0.5 text-xs text-white">{participant.copy_attempt_count}cp</span>
+			<span class="shrink-0 rounded bg-orange-500 px-1.5 py-0.5 text-xs text-white">copy x{participant.copy_attempt_count}</span>
 		{/if}
 		{#if participant.penalty_ms > 0}
 			<span class="shrink-0 rounded bg-red-600 px-1.5 py-0.5 text-xs text-white">-{Math.round(participant.penalty_ms / 1000)}s</span>

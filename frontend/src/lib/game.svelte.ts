@@ -18,7 +18,8 @@ export interface Participant {
 
 export interface PenaltyPayload {
 	penalty_ms: number;
-	tab_out_count: number;
+	type: 'tab_out' | 'copy';
+	count: number;
 }
 
 export interface GameStatePayload {
