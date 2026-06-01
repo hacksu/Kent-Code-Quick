@@ -38,6 +38,13 @@ DISCORD_GUILD_ID = os.environ.get("DISCORD_GUILD_ID", "")
 DOCS_ALLOWLIST = {"developer.mozilla.org", "www.w3schools.com"}
 
 
+# --- Config ---
+
+@app.route("/api/config")
+def get_config():
+    return jsonify({"devdocs_url": os.environ.get("DEVDOCS_URL", "http://localhost:9292")})
+
+
 # --- Auth ---
 
 @app.route("/api/auth/dev-login")

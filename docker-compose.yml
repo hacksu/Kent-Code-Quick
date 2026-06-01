@@ -3,10 +3,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-        PUBLIC_DEVDOCS_URL: http://localhost:9292
-    ports:
-      - "5001:5001"
     environment:
       SESSION_SECRET: ${SESSION_SECRET}
       DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID}
@@ -23,5 +19,3 @@ services:
     build:
       context: .
       dockerfile: devdocs.Dockerfile
-    ports:
-      - "9292:9292"

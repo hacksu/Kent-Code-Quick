@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { onMount } from 'svelte';
 	import { createPlayStore } from '$lib/game.svelte';
 	import { loadToken } from '$lib/store';
 	import Timer from '$lib/components/Timer.svelte';
@@ -19,10 +20,17 @@
 	let js = $state('');
 	let activeTab = $state<'html' | 'css' | 'js'>('html');
 	let docsOpen = $state(false);
+	let docsUrl = $state('http://localhost:9292/');
 
 	const frozen = $derived(store.hasSubmitted || store.eventEnded);
 
-	const DOCS_URL = ((import.meta.env.PUBLIC_DEVDOCS_URL as string | undefined) ?? 'http://localhost:9292') + '/';
+	onMount(async () => {
+		const res = await fetch('/api/config');
+		if (res.ok) {
+			const { devdocs_url } = await res.json();
+			docsUrl = devdocs_url + '/';
+		}
+	});
 
 	$effect(() => {
 		if (html || css || js) return;
@@ -107,7 +115,7 @@
 	</div>
 
 	<div class="docs-panel h-[300px] overflow-hidden border-t border-white/10 {docsOpen ? '' : 'hidden'}">
-		<iframe src={DOCS_URL} title="Documentation" class="h-full w-full border-none" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
+		<iframe src={docsUrl} title="Documentation" class="h-full w-full border-none" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
 	</div>
 
 	<div class="bottom-bar flex items-center justify-between border-t border-white/10 bg-hacksu-grey px-4 py-2">
