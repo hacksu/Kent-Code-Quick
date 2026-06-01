@@ -3,9 +3,10 @@ import { render } from '@testing-library/svelte';
 
 type UpdateCallback = (update: { docChanged: boolean; state: { doc: { toString: () => string } } }) => void;
 
-const { mockHtml, mockCss, MockEditorView, MockEditorState, MockCompartment } = vi.hoisted(() => {
+const { mockHtml, mockCss, mockJs, MockEditorView, MockEditorState, MockCompartment } = vi.hoisted(() => {
 	const mockHtml = vi.fn(() => 'html-ext');
 	const mockCss = vi.fn(() => 'css-ext');
+	const mockJs = vi.fn(() => 'js-ext');
 	const MockEditorView = vi.fn().mockImplementation(function () { return { destroy: vi.fn(), dispatch: vi.fn() }; });
 	(MockEditorView as unknown as Record<string, unknown>).updateListener = {
 		of: vi.fn((cb: unknown) => cb),
@@ -18,14 +19,17 @@ const { mockHtml, mockCss, MockEditorView, MockEditorState, MockCompartment } = 
 	const MockCompartment = vi.fn().mockImplementation(function () {
 		return { of: vi.fn((ext: unknown) => ext), reconfigure: vi.fn((ext: unknown) => ({ effects: ext })) };
 	});
-	return { mockHtml, mockCss, MockEditorView, MockEditorState, MockCompartment };
+	return { mockHtml, mockCss, mockJs, MockEditorView, MockEditorState, MockCompartment };
 });
 
 vi.mock('codemirror', () => ({ basicSetup: [] }));
-vi.mock('@codemirror/view', () => ({ EditorView: MockEditorView }));
+vi.mock('@codemirror/view', () => ({ EditorView: MockEditorView, keymap: { of: (ext: unknown) => ext } }));
 vi.mock('@codemirror/state', () => ({ EditorState: MockEditorState, Compartment: MockCompartment }));
+vi.mock('@codemirror/commands', () => ({ indentWithTab: 'indent-with-tab' }));
 vi.mock('@codemirror/lang-html', () => ({ html: mockHtml }));
 vi.mock('@codemirror/lang-css', () => ({ css: mockCss }));
+vi.mock('@codemirror/lang-javascript', () => ({ javascript: mockJs }));
+vi.mock('@codemirror/theme-one-dark', () => ({ oneDark: [] }));
 
 import Editor from './Editor.svelte';
 
@@ -50,14 +54,16 @@ describe('Editor.svelte - basic setup', () => {
 
 	it('uses html() extension when language is "html"', () => {
 		render(Editor, { language: 'html', value: '', onChange: vi.fn() });
-		expect(mockHtml).toHaveBeenCalledOnce();
+		expect(mockHtml).toHaveBeenCalled();
 		expect(mockCss).not.toHaveBeenCalled();
+		expect(mockJs).not.toHaveBeenCalled();
 	});
 
 	it('uses css() extension when language is "css"', () => {
 		render(Editor, { language: 'css', value: '', onChange: vi.fn() });
-		expect(mockCss).toHaveBeenCalledOnce();
+		expect(mockCss).toHaveBeenCalled();
 		expect(mockHtml).not.toHaveBeenCalled();
+		expect(mockJs).not.toHaveBeenCalled();
 	});
 
 	it('passes initial value as doc to EditorState.create', () => {

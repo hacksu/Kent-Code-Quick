@@ -1,10 +1,7 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render } from '@testing-library/svelte';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, waitFor } from '@testing-library/svelte';
 import { flushSync } from 'svelte';
-
-const { mockGoto } = vi.hoisted(() => ({ mockGoto: vi.fn() }));
-vi.mock('$app/navigation', () => ({ goto: mockGoto }));
 
 const listeners: Record<string, ((...args: unknown[]) => void)[]> = {};
 const mockSocket = {
@@ -19,54 +16,86 @@ const mockSocket = {
 vi.mock('socket.io-client', () => ({ io: () => mockSocket }));
 vi.mock('$lib/store', () => ({ loadToken: vi.fn(() => null), saveToken: vi.fn(), clearToken: vi.fn() }));
 
+const mockFetch = vi.fn();
+global.fetch = mockFetch;
+
+const realLocation = window.location;
+let locationMock: { replace: ReturnType<typeof vi.fn>; assign: ReturnType<typeof vi.fn>; href: string; origin: string };
+
 function fireSocketEvent(event: string, ...args: unknown[]) {
 	for (const cb of listeners[event] ?? []) cb(...args);
 }
 
+function okAuth(username = 'Alice') {
+	mockFetch.mockResolvedValue({
+		ok: true,
+		status: 200,
+		json: async () => ({ discord_id: '1', discord_username: username, is_admin: false }),
+	});
+}
+
 beforeEach(() => {
-	mockGoto.mockClear();
+	mockFetch.mockReset();
 	mockSocket.emit.mockClear();
 	mockSocket.connect.mockClear();
 	Object.keys(listeners).forEach((k) => delete listeners[k]);
-	sessionStorage.setItem('name', 'Alice');
+	locationMock = { replace: vi.fn(), assign: vi.fn(), href: '', origin: 'http://localhost:5001' };
+	// @ts-expect-error override jsdom location for assertions
+	delete window.location;
+	// @ts-expect-error override jsdom location for assertions
+	window.location = locationMock;
+});
+
+afterEach(() => {
+	// @ts-expect-error restore jsdom location
+	window.location = realLocation;
 });
 
 import Page from './+page.svelte';
 
 describe('Lobby page', () => {
 	it('renders waiting message', () => {
+		okAuth();
 		const { container } = render(Page);
 		expect(container.textContent).toMatch(/waiting/i);
 	});
 
-	it('redirects to / when no name in sessionStorage', () => {
-		sessionStorage.clear();
+	it('redirects to / when not authenticated', async () => {
+		mockFetch.mockResolvedValueOnce({ ok: false, status: 401, json: async () => ({}) });
 		render(Page);
-		expect(mockGoto).toHaveBeenCalledWith('/');
+		await waitFor(() => expect(locationMock.href).toBe('/'));
 	});
 
-	it('emits join_lobby with name on socket connect', () => {
+	it('emits join_lobby with name on socket connect', async () => {
+		okAuth('Alice');
 		render(Page);
+		await waitFor(() => expect(mockSocket.connect).toHaveBeenCalled());
 		fireSocketEvent('connect');
 		expect(mockSocket.emit).toHaveBeenCalledWith('join_lobby', expect.objectContaining({ name: 'Alice' }));
 	});
 
-	it('navigates to /play on game_start and saves token', () => {
+	it('navigates to /play on game_start', async () => {
+		okAuth();
 		render(Page);
+		await waitFor(() => expect(mockSocket.connect).toHaveBeenCalled());
 		fireSocketEvent('game_start', { token: 'abc123' });
 		flushSync();
-		expect(mockGoto).toHaveBeenCalledWith('/play');
+		expect(locationMock.href).toBe('/play');
 	});
 
-	it('shows locked message on game_locked', () => {
+	it('shows locked message on game_locked', async () => {
+		okAuth();
 		const { container } = render(Page);
+		await waitFor(() => expect(mockSocket.connect).toHaveBeenCalled());
 		fireSocketEvent('game_locked');
 		flushSync();
 		expect(container.textContent).toMatch(/in progress|locked/i);
 	});
 
-	it('shows lobby count from lobby_update', () => {
+	it('shows lobby count from lobby_update', async () => {
+		okAuth();
 		const { container } = render(Page);
+		await waitFor(() => expect(mockSocket.connect).toHaveBeenCalled());
 		fireSocketEvent('lobby_update', { lobby_count: 5 });
 		flushSync();
 		expect(container.textContent).toContain('5');

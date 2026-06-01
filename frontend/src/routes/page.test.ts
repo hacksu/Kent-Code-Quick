@@ -1,64 +1,57 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, fireEvent } from '@testing-library/svelte';
-import userEvent from '@testing-library/user-event';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, waitFor, fireEvent } from '@testing-library/svelte';
 
-const { mockGoto } = vi.hoisted(() => ({ mockGoto: vi.fn() }));
-vi.mock('$app/navigation', () => ({ goto: mockGoto }));
+const mockFetch = vi.fn();
+global.fetch = mockFetch;
+
+const realLocation = window.location;
+let locationMock: { replace: ReturnType<typeof vi.fn>; assign: ReturnType<typeof vi.fn>; href: string; origin: string };
 
 import Page from './+page.svelte';
 
 beforeEach(() => {
-	mockGoto.mockClear();
-	sessionStorage.clear();
+	mockFetch.mockReset();
+	locationMock = { replace: vi.fn(), assign: vi.fn(), href: '', origin: 'http://localhost:5001' };
+	// @ts-expect-error override jsdom location for assertions
+	delete window.location;
+	// @ts-expect-error override jsdom location for assertions
+	window.location = locationMock;
 });
 
-describe('Home page - validation', () => {
-	it('submit button is disabled when name is empty', () => {
-		const { container } = render(Page);
-		const btn = container.querySelector('button[type="submit"]') as HTMLButtonElement;
-		expect(btn.disabled).toBe(true);
-	});
-
-	it('submit button is enabled when name is filled', async () => {
-		const user = userEvent.setup();
-		const { container } = render(Page);
-		await user.type(container.querySelector('input')!, 'Alice');
-		const btn = container.querySelector('button[type="submit"]') as HTMLButtonElement;
-		expect(btn.disabled).toBe(false);
-	});
+afterEach(() => {
+	// @ts-expect-error restore jsdom location
+	window.location = realLocation;
 });
 
-describe('Home page - navigation', () => {
-	it('saves name to sessionStorage and navigates to /lobby', async () => {
-		const user = userEvent.setup();
-		const { container } = render(Page);
-		await user.type(container.querySelector('input')!, 'Alice');
-		await fireEvent.submit(container.querySelector('form')!);
-		expect(sessionStorage.getItem('name')).toBe('Alice');
-		expect(mockGoto).toHaveBeenCalledWith('/lobby');
+describe('Home page - auth redirect', () => {
+	it('redirects an authenticated admin to /admin', async () => {
+		mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ is_admin: true }) });
+		render(Page);
+		await waitFor(() => expect(locationMock.replace).toHaveBeenCalledWith('/admin'));
 	});
 
-	it('trims whitespace from name before saving', async () => {
-		const user = userEvent.setup();
-		const { container } = render(Page);
-		await user.type(container.querySelector('input')!, '  Bob  ');
-		await fireEvent.submit(container.querySelector('form')!);
-		expect(sessionStorage.getItem('name')).toBe('Bob');
-	});
-
-	it('does not navigate when form is invalid', async () => {
-		const { container } = render(Page);
-		await fireEvent.submit(container.querySelector('form')!);
-		expect(mockGoto).not.toHaveBeenCalled();
+	it('redirects an authenticated non-admin to /lobby', async () => {
+		mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ is_admin: false }) });
+		render(Page);
+		await waitFor(() => expect(locationMock.replace).toHaveBeenCalledWith('/lobby'));
 	});
 });
 
-describe('Home page - admin link', () => {
-	it('has an admin login link pointing to Discord OAuth', () => {
+describe('Home page - login', () => {
+	beforeEach(() => {
+		mockFetch.mockResolvedValueOnce({ ok: false, status: 401, json: async () => ({}) });
+	});
+
+	it('shows a Login with Discord button when not authenticated', async () => {
 		const { container } = render(Page);
-		const link = container.querySelector('a[href="/auth/discord?next=/admin"]') as HTMLAnchorElement;
-		expect(link).toBeTruthy();
-		expect(link.textContent).toMatch(/admin/i);
+		await waitFor(() => expect(container.textContent).toMatch(/login with discord/i));
+	});
+
+	it('sends the user to Discord OAuth when login is clicked', async () => {
+		const { getByRole } = render(Page);
+		const btn = await waitFor(() => getByRole('button', { name: /login with discord/i }));
+		await fireEvent.click(btn);
+		expect(locationMock.href).toMatch(/^https:\/\/discord\.com\/oauth2\/authorize/);
 	});
 });
