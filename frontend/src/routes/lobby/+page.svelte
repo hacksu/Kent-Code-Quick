@@ -4,6 +4,7 @@
 	import { loadToken, saveToken } from '$lib/store';
 	import kcqLogo from '$lib/assets/images/kcq_logo.svg';
 	import ParticleBackground from '$lib/components/ParticleBackground.svelte';
+	import PenaltyRules from '$lib/components/PenaltyRules.svelte';
 
 	let lobbyCount = $state(0);
 	let locked = $state(false);
@@ -54,6 +55,7 @@
 				{lobbyCount > 0 ? `${lobbyCount} player${lobbyCount !== 1 ? 's' : ''} in the lobby` : "You're the first one here!"}
 			</p>
 		</div>
+		<PenaltyRules />
 		<div class="flex gap-1">
 			{#each [0, 1, 2] as i (i)}
 				<div
