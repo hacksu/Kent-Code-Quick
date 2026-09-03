@@ -20,7 +20,7 @@
 	let js = $state('');
 	let activeTab = $state<'html' | 'css' | 'js'>('html');
 	let docsOpen = $state(false);
-	let docsUrl = $state('http://localhost:9292/');
+	let docsUrl = $state<string | null>(null);
 
 	const frozen = $derived(store.hasSubmitted || store.eventEnded);
 
@@ -115,7 +115,9 @@
 	</div>
 
 	<div class="docs-panel h-[300px] overflow-hidden border-t border-white/10 {docsOpen ? '' : 'hidden'}">
-		<iframe src={docsUrl} title="Documentation" class="h-full w-full border-none" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
+		{#if docsUrl}
+			<iframe src={docsUrl} title="Documentation" class="h-full w-full border-none" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
+		{/if}
 	</div>
 
 	<div class="bottom-bar flex items-center justify-between border-t border-white/10 bg-hacksu-grey px-4 py-2">
