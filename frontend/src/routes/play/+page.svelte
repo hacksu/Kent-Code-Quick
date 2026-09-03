@@ -21,6 +21,7 @@
 	let activeTab = $state<'html' | 'css' | 'js'>('html');
 	let docsOpen = $state(false);
 	let docsUrl = $state<string | null>(null);
+	let endOverlayDismissed = $state(false);
 
 	const frozen = $derived(store.hasSubmitted || store.eventEnded);
 
@@ -139,6 +140,24 @@
 					onclick={() => store.sendSubmit()}
 				>Submit</button>
 			{/if}
-		</div>
+	</div>
 	</div>
 </div>
+
+{#if store.eventEnded && !endOverlayDismissed}
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+		<div class="mx-4 max-w-sm rounded-lg border border-white/10 bg-hacksu-grey p-6 text-center shadow-xl">
+			<h2 class="text-2xl font-bold text-white">Event Ended</h2>
+			<p class="mt-2 text-sm text-gray-400">
+				{store.hasSubmitted
+					? 'Time is up. Your submitted code has been locked in.'
+					: 'Time is up. Your code as it stood has been locked in.'}
+			</p>
+			<button
+				type="button"
+				class="mt-4 rounded border border-white/20 px-4 py-1.5 text-sm text-gray-300 hover:border-white/40 hover:text-white"
+				onclick={() => (endOverlayDismissed = true)}
+			>View my code</button>
+		</div>
+	</div>
+{/if}
