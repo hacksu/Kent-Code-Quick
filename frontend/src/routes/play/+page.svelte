@@ -53,11 +53,18 @@
 			if (document.activeElement?.tagName === 'IFRAME') return;
 			store.sendTabOut();
 		}
+		function handleKeydown(e: KeyboardEvent) {
+			if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'p')) {
+				e.preventDefault();
+			}
+		}
 		document.addEventListener('visibilitychange', handleVisibilityChange);
 		window.addEventListener('blur', handleBlur);
+		window.addEventListener('keydown', handleKeydown);
 		return () => {
 			document.removeEventListener('visibilitychange', handleVisibilityChange);
 			window.removeEventListener('blur', handleBlur);
+			window.removeEventListener('keydown', handleKeydown);
 		};
 	});
 
