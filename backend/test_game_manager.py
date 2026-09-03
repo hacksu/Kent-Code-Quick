@@ -142,5 +142,6 @@ def test_to_dict_structure():
     d = g.to_dict()
     assert d["status"] == "waiting"
     assert d["duration_ms"] == 30_000
+    assert d["allow_internal_clipboard"] is True
     assert d["lobby_count"] == 1
     assert d["participants"] == {}

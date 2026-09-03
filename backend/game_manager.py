@@ -60,6 +60,7 @@ class GameState:
     duration_ms: int = 45 * 60 * 1000
     started_at: Optional[float] = None
     ended_at: Optional[float] = None
+    allow_internal_clipboard: bool = True  # copy/paste round-tripped within a participant's own editor
     lobby: dict = field(default_factory=dict)   # token -> LobbyEntry
     participants: dict = field(default_factory=dict)  # token -> Participant
 
@@ -69,6 +70,7 @@ class GameState:
             "duration_ms": self.duration_ms,
             "started_at": self.started_at,
             "ended_at": self.ended_at,
+            "allow_internal_clipboard": self.allow_internal_clipboard,
             "lobby_count": len(self.lobby),
             "participants": {t: p.to_dict() for t, p in self.participants.items()},
         }

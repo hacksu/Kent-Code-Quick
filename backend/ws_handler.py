@@ -93,6 +93,8 @@ def handle_start_game(data: dict) -> None:
         return
     if "duration_ms" in data:
         g.duration_ms = int(data["duration_ms"])
+    if "allow_internal_clipboard" in data:
+        g.allow_internal_clipboard = bool(data["allow_internal_clipboard"])
     lobby_entries = list(g.lobby.items())
     start_game(g)
     gevent.spawn(_run_timer)

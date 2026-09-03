@@ -14,6 +14,7 @@
 		value = '',
 		readonly = false,
 		blockCopyPaste = true,
+		allowInternalClipboard = true,
 		onChange,
 		onCopyAttempt,
 	}: {
@@ -21,26 +22,63 @@
 		value?: string;
 		readonly?: boolean;
 		blockCopyPaste?: boolean;
+		allowInternalClipboard?: boolean;
 		onChange: (value: string) => void;
 		onCopyAttempt?: () => void;
 	} = $props();
 
 	let container: HTMLDivElement;
+	let view: EditorView;
+	let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+	// svelte-ignore state_referenced_locally
+	let lastReportedValue = value;
+
+	export function flush(): void {
+		if (debounceTimer === null) return;
+		clearTimeout(debounceTimer);
+		debounceTimer = null;
+		const v = view.state.doc.toString();
+		lastReportedValue = v;
+		onChange(v);
+	}
+
+	let internalClipboard = '';
+
+	function selectedText(view: EditorView): string {
+		const { from, to } = view.state.selection.main;
+		return view.state.sliceDoc(from, to);
+	}
 
 	const noPasteCopyExtension = EditorView.domEventHandlers({
-		paste: (e) => { if (!blockCopyPaste) return false; e.preventDefault(); onCopyAttempt?.(); return true; },
-		copy:  (e) => { if (!blockCopyPaste) return false; e.preventDefault(); onCopyAttempt?.(); return true; },
-		cut:   (e) => { if (!blockCopyPaste) return false; e.preventDefault(); onCopyAttempt?.(); return true; },
+		copy: (e, view) => {
+			if (!blockCopyPaste) return false;
+			if (allowInternalClipboard) { internalClipboard = selectedText(view); return false; }
+			e.preventDefault();
+			onCopyAttempt?.();
+			return true;
+		},
+		cut: (e, view) => {
+			if (!blockCopyPaste) return false;
+			if (allowInternalClipboard) { internalClipboard = selectedText(view); return false; }
+			e.preventDefault();
+			onCopyAttempt?.();
+			return true;
+		},
+		paste: (e) => {
+			if (!blockCopyPaste) return false;
+			const pasted = e.clipboardData?.getData('text/plain') ?? '';
+			if (allowInternalClipboard && pasted !== '' && pasted === internalClipboard) return false;
+			e.preventDefault();
+			onCopyAttempt?.();
+			return true;
+		},
 	});
 
 	const readOnlyCompartment = new Compartment();
 	const langCompartment = new Compartment();
 
 	onMount(() => {
-		let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-		let lastReportedValue = value;
-
-		const view = new EditorView({
+		view = new EditorView({
 			state: EditorState.create({
 				doc: value,
 				extensions: [
@@ -63,12 +101,6 @@
 			parent: container,
 		});
 
-		const block = (e: Event) => { e.preventDefault(); onCopyAttempt?.(); };
-		if (blockCopyPaste) {
-			document.addEventListener('paste', block, true);
-			document.addEventListener('copy',  block, true);
-		}
-
 		$effect(() => {
 			view.dispatch({ effects: readOnlyCompartment.reconfigure(EditorState.readOnly.of(readonly)) });
 		});
@@ -78,16 +110,9 @@
 			view.dispatch({ effects: langCompartment.reconfigure(langExt) });
 		});
 
-		// Sync external value changes (tab switch) without triggering onChange.
-		// Flush any pending debounce first so unsaved typed content isn't lost.
 		$effect(() => {
 			if (value !== lastReportedValue) {
-				if (debounceTimer !== null) {
-					clearTimeout(debounceTimer);
-					debounceTimer = null;
-					const unsaved = view.state.doc.toString();
-					if (unsaved !== value) onChange(unsaved);
-				}
+				flush();
 				lastReportedValue = value;
 				view.dispatch({
 					changes: { from: 0, to: view.state.doc.length, insert: value },
@@ -97,10 +122,6 @@
 
 		return () => {
 			if (debounceTimer !== null) clearTimeout(debounceTimer);
-			if (blockCopyPaste) {
-				document.removeEventListener('paste', block, true);
-				document.removeEventListener('copy',  block, true);
-			}
 			view.destroy();
 		};
 	});
