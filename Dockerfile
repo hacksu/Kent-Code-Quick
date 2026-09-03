@@ -3,8 +3,6 @@ WORKDIR /app/frontend
 COPY frontend/package.json frontend/bun.lock ./
 RUN bun install --frozen-lockfile
 COPY frontend/ .
-ARG PUBLIC_DEVDOCS_URL=http://localhost:9292
-ENV PUBLIC_DEVDOCS_URL=$PUBLIC_DEVDOCS_URL
 RUN bun run build
 
 FROM python:3.14-slim

@@ -42,7 +42,9 @@ DOCS_ALLOWLIST = {"developer.mozilla.org", "www.w3schools.com"}
 
 @app.route("/api/config")
 def get_config():
-    return jsonify({"devdocs_url": os.environ.get("DEVDOCS_URL", "http://localhost:9292")})
+    host = request.host.rsplit(":", 1)[0]
+    url = os.environ.get("DEVDOCS_URL") or f"http://{host}:9292"
+    return jsonify({"devdocs_url": url.rstrip("/")})
 
 
 # --- Auth ---
