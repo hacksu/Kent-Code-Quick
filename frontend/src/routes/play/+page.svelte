@@ -22,6 +22,7 @@
 	let docsOpen = $state(false);
 	let docsUrl = $state<string | null>(null);
 	let endOverlayDismissed = $state(false);
+	let editorRef: Editor;
 
 	const frozen = $derived(store.hasSubmitted || store.eventEnded);
 
@@ -69,6 +70,11 @@
 		else { js = v; }
 		store.sendCodeUpdate(html, css, js);
 	}
+
+	function handleSubmit() {
+		editorRef?.flush();
+		store.sendSubmit();
+	}
 </script>
 
 <div class="room-layout grid h-screen grid-rows-[auto_1fr_auto_auto] overflow-hidden">
@@ -102,9 +108,11 @@
 			</div>
 			<div class="editor-wrapper flex-1 overflow-hidden">
 				<Editor
+					bind:this={editorRef}
 					language={activeTab}
 					value={activeTab === 'html' ? html : activeTab === 'css' ? css : js}
 					readonly={frozen}
+					allowInternalClipboard={store.allowInternalClipboard}
 					onChange={onEditorChange}
 					onCopyAttempt={() => store.sendCopyAttempt()}
 				/>
@@ -137,7 +145,7 @@
 				<button
 					type="button"
 					class="submit-btn rounded bg-hacksu-green px-4 py-1.5 text-sm font-semibold text-white hover:opacity-90"
-					onclick={() => store.sendSubmit()}
+					onclick={handleSubmit}
 				>Submit</button>
 			{/if}
 	</div>

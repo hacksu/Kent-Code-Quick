@@ -132,6 +132,24 @@ def test_start_game_spawns_timer():
     assert mock_spawn.call_count == 1
 
 
+def test_start_game_defaults_allow_internal_clipboard_true():
+    g = create_game()
+    add_to_lobby(g, None, "Alice", "sid1")
+    ws = admin_ws_client()
+    with patch("ws_handler.gevent.spawn"):
+        ws.emit("start_game", {})
+    assert game_manager.game.allow_internal_clipboard is True
+
+
+def test_start_game_can_disable_internal_clipboard():
+    g = create_game()
+    add_to_lobby(g, None, "Alice", "sid1")
+    ws = admin_ws_client()
+    with patch("ws_handler.gevent.spawn"):
+        ws.emit("start_game", {"allow_internal_clipboard": False})
+    assert game_manager.game.allow_internal_clipboard is False
+
+
 # --- join_game ---
 
 def test_join_game_with_valid_token_gets_game_state():
