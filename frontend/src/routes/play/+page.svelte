@@ -34,10 +34,12 @@
 		}
 	});
 
+	let hydrated = false;
 	$effect(() => {
-		if (html || css || js) return;
+		if (hydrated) return;
 		const me = store.myParticipant;
 		if (!me) return;
+		hydrated = true;
 		html = me.html;
 		css = me.css;
 		js = me.js;
@@ -48,10 +50,6 @@
 			if (document.hidden) store.sendTabOut();
 		}
 		function handleBlur() {
-			// window.blur also fires when focus moves into one of our own iframes
-			// (the docs panel or the preview pane). That isn't a tab-out, so ignore
-			// it - only penalize when focus left the page entirely (alt+tab to another
-			// app or window), in which case activeElement is not an iframe.
 			if (document.activeElement?.tagName === 'IFRAME') return;
 			store.sendTabOut();
 		}
