@@ -104,12 +104,45 @@ def test_apply_penalty_unknown_sid_returns_none():
     assert result is None
 
 
+def test_apply_penalty_noop_after_submission():
+    g = create_game()
+    add_to_lobby(g, None, "Alice", "sid1")
+    start_game(g)
+    snapshot_participant("sid1")
+    result = apply_penalty("sid1")
+    assert result is None
+    p = list(g.participants.values())[0]
+    assert p.penalty_ms == 0
+    assert p.tab_out_count == 0
+
+
+def test_record_copy_attempt_noop_after_submission():
+    g = create_game()
+    add_to_lobby(g, None, "Alice", "sid1")
+    start_game(g)
+    snapshot_participant("sid1")
+    result = record_copy_attempt("sid1")
+    assert result is None
+    p = list(g.participants.values())[0]
+    assert p.penalty_ms == 0
+    assert p.copy_attempt_count == 0
+
+
+def test_apply_penalty_noop_after_game_ends():
+    g = create_game()
+    add_to_lobby(g, None, "Alice", "sid1")
+    start_game(g)
+    end_game(g)
+    result = apply_penalty("sid1")
+    assert result is None
+
+
 def test_record_copy_attempt():
     g = create_game()
     add_to_lobby(g, None, "Alice", "sid1")
     start_game(g)
     result = record_copy_attempt("sid1")
-    assert result == {"copy_attempt_count": 1}
+    assert result == {"copy_attempt_count": 1, "penalty_ms": _PENALTY_SCHEDULE[0] * 1000}
 
 
 def test_snapshot_participant():

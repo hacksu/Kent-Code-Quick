@@ -146,6 +146,8 @@ def apply_penalty(sid: str) -> Optional[dict]:
     if not result:
         return None
     _, participant = result
+    if participant.submitted_at is not None:
+        return None
     idx = min(participant.tab_out_count, len(_PENALTY_SCHEDULE) - 1)
     participant.penalty_ms += _PENALTY_SCHEDULE[idx] * 1000
     participant.tab_out_count += 1
@@ -157,6 +159,8 @@ def record_copy_attempt(sid: str) -> Optional[dict]:
     if not result:
         return None
     _, participant = result
+    if participant.submitted_at is not None:
+        return None
     idx = min(participant.copy_attempt_count, len(_PENALTY_SCHEDULE) - 1)
     participant.penalty_ms += _PENALTY_SCHEDULE[idx] * 1000
     participant.copy_attempt_count += 1
