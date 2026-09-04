@@ -33,6 +33,15 @@ vi.mock('@codemirror/theme-one-dark', () => ({ oneDark: [] }));
 
 import Editor from './Editor.svelte';
 
+// CodeMirror invokes domEventHandlers as (event, view); copy/cut read the
+// current selection off the view via view.state.selection/sliceDoc.
+const mockView = {
+	state: {
+		selection: { main: { from: 0, to: 3 } },
+		sliceDoc: vi.fn(() => 'sel'),
+	},
+};
+
 beforeEach(() => {
 	vi.clearAllMocks();
 	(MockEditorView as ReturnType<typeof vi.fn>).mockImplementation(function () { return { destroy: vi.fn(), dispatch: vi.fn() }; });
@@ -115,23 +124,33 @@ describe('Editor.svelte - clipboard blocking', () => {
 		expect(e.preventDefault).toHaveBeenCalled();
 	});
 
-	it('copy handler calls preventDefault', () => {
-		render(Editor, { language: 'html', value: '', onChange: vi.fn() });
+	it('copy handler calls preventDefault when internal clipboard is not allowed', () => {
+		render(Editor, { language: 'html', value: '', onChange: vi.fn(), allowInternalClipboard: false });
 		const handlers = (
 			(MockEditorView as unknown as Record<string, ReturnType<typeof vi.fn>>).domEventHandlers
-		).mock.calls[0][0] as Record<string, (e: Event) => void>;
+		).mock.calls[0][0] as Record<string, (e: Event, view: unknown) => void>;
 		const e = { preventDefault: vi.fn() } as unknown as Event;
-		handlers.copy(e);
+		handlers.copy(e, mockView);
 		expect(e.preventDefault).toHaveBeenCalled();
 	});
 
-	it('cut handler calls preventDefault', () => {
-		render(Editor, { language: 'html', value: '', onChange: vi.fn() });
+	it('copy handler does not block when internal clipboard is allowed', () => {
+		render(Editor, { language: 'html', value: '', onChange: vi.fn(), allowInternalClipboard: true });
 		const handlers = (
 			(MockEditorView as unknown as Record<string, ReturnType<typeof vi.fn>>).domEventHandlers
-		).mock.calls[0][0] as Record<string, (e: Event) => void>;
+		).mock.calls[0][0] as Record<string, (e: Event, view: unknown) => void>;
 		const e = { preventDefault: vi.fn() } as unknown as Event;
-		handlers.cut(e);
+		handlers.copy(e, mockView);
+		expect(e.preventDefault).not.toHaveBeenCalled();
+	});
+
+	it('cut handler calls preventDefault when internal clipboard is not allowed', () => {
+		render(Editor, { language: 'html', value: '', onChange: vi.fn(), allowInternalClipboard: false });
+		const handlers = (
+			(MockEditorView as unknown as Record<string, ReturnType<typeof vi.fn>>).domEventHandlers
+		).mock.calls[0][0] as Record<string, (e: Event, view: unknown) => void>;
+		const e = { preventDefault: vi.fn() } as unknown as Event;
+		handlers.cut(e, mockView);
 		expect(e.preventDefault).toHaveBeenCalled();
 	});
 
@@ -145,51 +164,24 @@ describe('Editor.svelte - clipboard blocking', () => {
 		expect(onCopyAttempt).toHaveBeenCalledOnce();
 	});
 
-	it('CodeMirror copy handler calls onCopyAttempt', () => {
+	it('CodeMirror copy handler calls onCopyAttempt when internal clipboard is not allowed', () => {
 		const onCopyAttempt = vi.fn();
-		render(Editor, { language: 'html', value: '', onChange: vi.fn(), onCopyAttempt });
+		render(Editor, { language: 'html', value: '', onChange: vi.fn(), onCopyAttempt, allowInternalClipboard: false });
 		const handlers = (
 			(MockEditorView as unknown as Record<string, ReturnType<typeof vi.fn>>).domEventHandlers
-		).mock.calls[0][0] as Record<string, (e: Event) => void>;
-		handlers.copy({ preventDefault: vi.fn() } as unknown as Event);
+		).mock.calls[0][0] as Record<string, (e: Event, view: unknown) => void>;
+		handlers.copy({ preventDefault: vi.fn() } as unknown as Event, mockView);
 		expect(onCopyAttempt).toHaveBeenCalledOnce();
 	});
 
-	it('adds document-level capture listeners on mount', () => {
-		const addSpy = vi.spyOn(document, 'addEventListener');
-		render(Editor, { language: 'html', value: '', onChange: vi.fn() });
-		const captureListeners = addSpy.mock.calls.filter((c) => c[2] === true).map((c) => c[0]);
-		expect(captureListeners).toContain('paste');
-		expect(captureListeners).toContain('copy');
-	});
-
-	it('document-level paste capture calls preventDefault', () => {
-		const addSpy = vi.spyOn(document, 'addEventListener');
-		render(Editor, { language: 'html', value: '', onChange: vi.fn() });
-		const pasteCall = addSpy.mock.calls.find((c) => c[0] === 'paste' && c[2] === true);
-		const listener = pasteCall?.[1] as (e: Event) => void;
-		const e = { preventDefault: vi.fn() } as unknown as Event;
-		listener(e);
-		expect(e.preventDefault).toHaveBeenCalled();
-	});
-
-	it('document-level paste capture calls onCopyAttempt', () => {
-		const addSpy = vi.spyOn(document, 'addEventListener');
+	it('CodeMirror copy handler does not call onCopyAttempt when internal clipboard is allowed', () => {
 		const onCopyAttempt = vi.fn();
-		render(Editor, { language: 'html', value: '', onChange: vi.fn(), onCopyAttempt });
-		const pasteCall = addSpy.mock.calls.find((c) => c[0] === 'paste' && c[2] === true);
-		const listener = pasteCall?.[1] as (e: Event) => void;
-		listener({ preventDefault: vi.fn() } as unknown as Event);
-		expect(onCopyAttempt).toHaveBeenCalledOnce();
-	});
-
-	it('removes document-level capture listeners on destroy', () => {
-		const removeSpy = vi.spyOn(document, 'removeEventListener');
-		const { unmount } = render(Editor, { language: 'html', value: '', onChange: vi.fn() });
-		unmount();
-		const captureRemovals = removeSpy.mock.calls.filter((c) => c[2] === true).map((c) => c[0]);
-		expect(captureRemovals).toContain('paste');
-		expect(captureRemovals).toContain('copy');
+		render(Editor, { language: 'html', value: '', onChange: vi.fn(), onCopyAttempt, allowInternalClipboard: true });
+		const handlers = (
+			(MockEditorView as unknown as Record<string, ReturnType<typeof vi.fn>>).domEventHandlers
+		).mock.calls[0][0] as Record<string, (e: Event, view: unknown) => void>;
+		handlers.copy({ preventDefault: vi.fn() } as unknown as Event, mockView);
+		expect(onCopyAttempt).not.toHaveBeenCalled();
 	});
 });
 

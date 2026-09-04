@@ -99,6 +99,9 @@ describe('Admin page - dashboard', () => {
 		flushSync();
 		await fireEvent.click(btn);
 		// Default duration is 45 minutes -> 2_700_000 ms.
-		expect(mockSocket.emit).toHaveBeenCalledWith('start_game', { duration_ms: 2_700_000 });
+		expect(mockSocket.emit).toHaveBeenCalledWith('start_game', {
+			duration_ms: 2_700_000,
+			allow_internal_clipboard: true,
+		});
 	});
 });
