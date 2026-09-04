@@ -7,7 +7,6 @@ export interface Participant {
 	html: string;
 	css: string;
 	js: string;
-	penalty_ms: number;
 	tab_out_count: number;
 	copy_attempt_count: number;
 	submitted_at: number | null;
@@ -17,7 +16,6 @@ export interface Participant {
 }
 
 export interface PenaltyPayload {
-	penalty_ms: number;
 	type: 'tab_out' | 'copy';
 	count: number;
 }

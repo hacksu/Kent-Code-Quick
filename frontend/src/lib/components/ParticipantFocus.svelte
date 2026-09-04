@@ -11,7 +11,7 @@
 		onNext,
 		onClose,
 	}: {
-		participant: Pick<Participant, 'name' | 'html' | 'css' | 'js' | 'submitted_at' | 'penalty_ms' | 'copy_attempt_count'>;
+		participant: Pick<Participant, 'name' | 'html' | 'css' | 'js' | 'submitted_at' | 'tab_out_count' | 'copy_attempt_count'>;
 		index: number;
 		total: number;
 		onPrev: () => void;

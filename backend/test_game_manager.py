@@ -10,7 +10,6 @@ from game_manager import (
     create_game, get_or_create_game, add_to_lobby,
     start_game, end_game, apply_penalty, record_copy_attempt,
     snapshot_participant, auto_snapshot_all, get_participant_by_sid,
-    _PENALTY_SCHEDULE,
 )
 
 
@@ -91,11 +90,9 @@ def test_apply_penalty_increments_correctly():
     start_game(g)
     result = apply_penalty("sid1")
     assert result is not None
-    assert result["penalty_ms"] == _PENALTY_SCHEDULE[0] * 1000
-    assert result["tab_out_count"] == 1
+    assert result == {"tab_out_count": 1}
     result2 = apply_penalty("sid1")
-    assert result2["penalty_ms"] == (_PENALTY_SCHEDULE[0] + _PENALTY_SCHEDULE[1]) * 1000
-    assert result2["tab_out_count"] == 2
+    assert result2 == {"tab_out_count": 2}
 
 
 def test_apply_penalty_unknown_sid_returns_none():
@@ -112,7 +109,6 @@ def test_apply_penalty_noop_after_submission():
     result = apply_penalty("sid1")
     assert result is None
     p = list(g.participants.values())[0]
-    assert p.penalty_ms == 0
     assert p.tab_out_count == 0
 
 
@@ -124,7 +120,6 @@ def test_record_copy_attempt_noop_after_submission():
     result = record_copy_attempt("sid1")
     assert result is None
     p = list(g.participants.values())[0]
-    assert p.penalty_ms == 0
     assert p.copy_attempt_count == 0
 
 
@@ -142,7 +137,7 @@ def test_record_copy_attempt():
     add_to_lobby(g, None, "Alice", "sid1")
     start_game(g)
     result = record_copy_attempt("sid1")
-    assert result == {"copy_attempt_count": 1, "penalty_ms": _PENALTY_SCHEDULE[0] * 1000}
+    assert result == {"copy_attempt_count": 1}
 
 
 def test_snapshot_participant():

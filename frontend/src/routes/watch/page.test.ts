@@ -40,7 +40,6 @@ function participant(id: string, name: string) {
 		html: '',
 		css: '',
 		js: '',
-		penalty_ms: 0,
 		tab_out_count: 0,
 		copy_attempt_count: 0,
 		submitted_at: null,

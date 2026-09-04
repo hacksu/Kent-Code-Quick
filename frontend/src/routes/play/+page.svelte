@@ -50,8 +50,14 @@
 			if (document.hidden) store.sendTabOut();
 		}
 		function handleBlur() {
-			if (document.activeElement?.tagName === 'IFRAME') return;
-			store.sendTabOut();
+			// window.blur also fires when focus moves into one of our own iframes
+			// (the docs panel or the preview pane) or other in-page elements. Defer
+			// one tick so document.hasFocus() reflects where focus actually landed -
+			// it stays true for any focus target within our own document (including
+			// same-origin iframes), and only goes false once focus truly left the page.
+			setTimeout(() => {
+				if (!document.hasFocus()) store.sendTabOut();
+			}, 0);
 		}
 		function handleKeydown(e: KeyboardEvent) {
 			if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'p')) {
