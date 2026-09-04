@@ -3,9 +3,7 @@
 		'Switching to another browser tab',
 		'Alt+Tab / switching to another app',
 		'Minimizing the window',
-		'Copying code (Ctrl+C)',
-		'Cutting code (Ctrl+X)',
-		'Pasting code (Ctrl+V or right-click paste)'
+		'Pasting external code (Ctrl+V or right-click paste)'
 	];
 </script>
 
