@@ -129,7 +129,7 @@ def handle_tab_out(data: dict) -> None:
     result = apply_penalty(request.sid)
     if not result:
         return
-    emit("penalty", {"type": "tab_out", "count": result["tab_out_count"], "penalty_ms": result["penalty_ms"]})
+    emit("penalty", {"type": "tab_out", "count": result["tab_out_count"]})
     pair = get_participant_by_sid(request.sid)
     if pair:
         token, participant = pair
@@ -137,7 +137,6 @@ def handle_tab_out(data: dict) -> None:
             "participant_update",
             {
                 "token": token,
-                "penalty_ms": participant.penalty_ms,
                 "tab_out_count": participant.tab_out_count,
             },
             to=GAME_ROOM,
@@ -149,7 +148,7 @@ def handle_copy_attempt(data: dict) -> None:
     result = record_copy_attempt(request.sid)
     if not result:
         return
-    emit("penalty", {"type": "copy", "count": result["copy_attempt_count"], "penalty_ms": result["penalty_ms"]})
+    emit("penalty", {"type": "copy", "count": result["copy_attempt_count"]})
     pair = get_participant_by_sid(request.sid)
     if pair:
         token, participant = pair
@@ -158,7 +157,6 @@ def handle_copy_attempt(data: dict) -> None:
             {
                 "token": token,
                 "copy_attempt_count": participant.copy_attempt_count,
-                "penalty_ms": participant.penalty_ms,
             },
             to=GAME_ROOM,
         )

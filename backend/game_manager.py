@@ -9,8 +9,6 @@ from datetime import datetime
 from dataclasses import dataclass, field
 from typing import Optional, Tuple
 
-_PENALTY_SCHEDULE = [5, 25, 60, 120, 240, 480, 960]
-
 
 @dataclass
 class LobbyEntry:
@@ -29,7 +27,6 @@ class Participant:
     html: str = ""
     css: str = ""
     js: str = ""
-    penalty_ms: int = 0
     tab_out_count: int = 0
     copy_attempt_count: int = 0
     submitted_at: Optional[float] = None
@@ -44,7 +41,6 @@ class Participant:
             "html": self.html,
             "css": self.css,
             "js": self.js,
-            "penalty_ms": self.penalty_ms,
             "tab_out_count": self.tab_out_count,
             "copy_attempt_count": self.copy_attempt_count,
             "submitted_at": self.submitted_at,
@@ -148,10 +144,8 @@ def apply_penalty(sid: str) -> Optional[dict]:
     _, participant = result
     if participant.submitted_at is not None:
         return None
-    idx = min(participant.tab_out_count, len(_PENALTY_SCHEDULE) - 1)
-    participant.penalty_ms += _PENALTY_SCHEDULE[idx] * 1000
     participant.tab_out_count += 1
-    return {"penalty_ms": participant.penalty_ms, "tab_out_count": participant.tab_out_count}
+    return {"tab_out_count": participant.tab_out_count}
 
 
 def record_copy_attempt(sid: str) -> Optional[dict]:
@@ -161,10 +155,8 @@ def record_copy_attempt(sid: str) -> Optional[dict]:
     _, participant = result
     if participant.submitted_at is not None:
         return None
-    idx = min(participant.copy_attempt_count, len(_PENALTY_SCHEDULE) - 1)
-    participant.penalty_ms += _PENALTY_SCHEDULE[idx] * 1000
     participant.copy_attempt_count += 1
-    return {"penalty_ms": participant.penalty_ms, "copy_attempt_count": participant.copy_attempt_count}
+    return {"copy_attempt_count": participant.copy_attempt_count}
 
 
 def auto_snapshot_all(g: GameState) -> None:
