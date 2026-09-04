@@ -27,6 +27,7 @@ export interface GameStatePayload {
 	ended_at: number | null;
 	allow_internal_clipboard: boolean;
 	lobby_count: number;
+	lobby_names: string[];
 	participants: Record<string, Participant>;
 }
 
@@ -91,6 +92,7 @@ export function createWatchStore() {
 
 	let participants = $state<Record<string, Participant>>({});
 	let lobbyCount = $state(0);
+	let lobbyNames = $state<string[]>([]);
 	let gameStatus = $state<'waiting' | 'active' | 'ended'>('waiting');
 	let elapsed = $state(0);
 	let durationMs = $state(45 * 60 * 1000);
@@ -105,10 +107,14 @@ export function createWatchStore() {
 		allowInternalClipboard = data.allow_internal_clipboard;
 		gameStatus = data.status as 'waiting' | 'active' | 'ended';
 		lobbyCount = data.lobby_count;
+		lobbyNames = data.lobby_names ?? [];
 		if (data.status === 'ended') eventEnded = true;
 	});
 
-	socket.on('lobby_update', (data: { lobby_count: number }) => { lobbyCount = data.lobby_count; });
+	socket.on('lobby_update', (data: { lobby_count: number; lobby_names?: string[] }) => {
+		lobbyCount = data.lobby_count;
+		lobbyNames = data.lobby_names ?? [];
+	});
 
 	socket.on('participant_update', (p: { token: string } & Partial<Participant>) => {
 		if (p.token && participants[p.token]) {
@@ -127,6 +133,7 @@ export function createWatchStore() {
 	socket.on('game_reset', () => {
 		participants = {};
 		lobbyCount = 0;
+		lobbyNames = [];
 		gameStatus = 'waiting';
 		elapsed = 0;
 		eventEnded = false;
@@ -138,6 +145,7 @@ export function createWatchStore() {
 	return {
 		get participants() { return participants; },
 		get lobbyCount() { return lobbyCount; },
+		get lobbyNames() { return lobbyNames; },
 		get gameStatus() { return gameStatus; },
 		get elapsed() { return elapsed; },
 		get durationMs() { return durationMs; },

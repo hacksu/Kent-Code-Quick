@@ -172,4 +172,5 @@ def test_to_dict_structure():
     assert d["duration_ms"] == 30_000
     assert d["allow_internal_clipboard"] is True
     assert d["lobby_count"] == 1
+    assert d["lobby_names"] == ["Alice"]
     assert d["participants"] == {}

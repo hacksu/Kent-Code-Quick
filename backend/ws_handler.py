@@ -55,7 +55,11 @@ def handle_join_lobby(data: dict) -> None:
         emit("token_assigned", {"token": token})
 
     join_room(LOBBY_ROOM)
-    socketio.emit("lobby_update", {"lobby_count": len(g.lobby)}, to=LOBBY_ROOM)
+    socketio.emit(
+        "lobby_update",
+        {"lobby_count": len(g.lobby), "lobby_names": [e.name for e in g.lobby.values()]},
+        to=LOBBY_ROOM,
+    )
 
 
 @socketio.on("join_game")
