@@ -13,7 +13,7 @@ const base = {
 	css: 'p{}',
 	js: '',
 	submitted_at: null,
-	penalty_ms: 0,
+	tab_out_count: 0,
 	copy_attempt_count: 0,
 };
 
@@ -30,11 +30,11 @@ describe('ParticipantCard.svelte - rendering', () => {
 		expect(queryByTestId('submitted-badge')).toBeNull();
 	});
 
-	it('shows submitted badge when submitted_at is set', () => {
+	it('shows submitted badge with an hour:min:sec time when submitted_at is set', () => {
 		const { getByTestId } = render(ParticipantCard, {
 			participant: { ...base, submitted_at: 1234567890 },
 		});
-		expect(getByTestId('submitted-badge').textContent).toBe('submitted');
+		expect(getByTestId('submitted-badge').textContent).toMatch(/^submitted \d{2}:\d{2}:\d{2}$/);
 	});
 
 	it('renders a preview wrapper', () => {

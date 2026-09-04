@@ -10,6 +10,7 @@ services:
       DISCORD_ADMIN_ROLE_ID: ${DISCORD_ADMIN_ROLE_ID}
       DISCORD_GUILD_ID: ${DISCORD_GUILD_ID}
       NODE_ENV: ${NODE_ENV}
+      DEVDOCS_URL: ${DEVDOCS_URL:-}
     volumes:
       # Persist each event's built participant documents to the host on event end.
       - ./results:/app/results

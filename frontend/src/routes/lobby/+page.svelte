@@ -4,6 +4,7 @@
 	import { loadToken, saveToken } from '$lib/store';
 	import kcqLogo from '$lib/assets/images/kcq_logo.svg';
 	import ParticleBackground from '$lib/components/ParticleBackground.svelte';
+	import PenaltyRules from '$lib/components/PenaltyRules.svelte';
 
 	let lobbyCount = $state(0);
 	let locked = $state(false);
@@ -54,20 +55,7 @@
 				{lobbyCount > 0 ? `${lobbyCount} player${lobbyCount !== 1 ? 's' : ''} in the lobby` : "You're the first one here!"}
 			</p>
 		</div>
-		<div class="flex gap-1">
-			{#each [0, 1, 2] as i (i)}
-				<div
-					class="h-3 w-3 rounded-full bg-hacksu-green"
-					style="animation: bounce 1.2s ease-in-out {i * 0.2}s infinite"
-				></div>
-			{/each}
-		</div>
+		<PenaltyRules />
 	{/if}
 </div>
 
-<style>
-	@keyframes bounce {
-		0%, 100% { transform: translateY(0); opacity: 0.4; }
-		50% { transform: translateY(-10px); opacity: 1; }
-	}
-</style>

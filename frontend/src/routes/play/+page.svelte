@@ -20,7 +20,9 @@
 	let js = $state('');
 	let activeTab = $state<'html' | 'css' | 'js'>('html');
 	let docsOpen = $state(false);
-	let docsUrl = $state('http://localhost:9292/');
+	let docsUrl = $state<string | null>(null);
+	let endOverlayDismissed = $state(false);
+	let editorRef: Editor;
 
 	const frozen = $derived(store.hasSubmitted || store.eventEnded);
 
@@ -32,10 +34,12 @@
 		}
 	});
 
+	let hydrated = false;
 	$effect(() => {
-		if (html || css || js) return;
+		if (hydrated) return;
 		const me = store.myParticipant;
 		if (!me) return;
+		hydrated = true;
 		html = me.html;
 		css = me.css;
 		js = me.js;
@@ -47,17 +51,26 @@
 		}
 		function handleBlur() {
 			// window.blur also fires when focus moves into one of our own iframes
-			// (the docs panel or the preview pane). That isn't a tab-out, so ignore
-			// it - only penalize when focus left the page entirely (alt+tab to another
-			// app or window), in which case activeElement is not an iframe.
-			if (document.activeElement?.tagName === 'IFRAME') return;
-			store.sendTabOut();
+			// (the docs panel or the preview pane) or other in-page elements. Defer
+			// one tick so document.hasFocus() reflects where focus actually landed -
+			// it stays true for any focus target within our own document (including
+			// same-origin iframes), and only goes false once focus truly left the page.
+			setTimeout(() => {
+				if (!document.hasFocus()) store.sendTabOut();
+			}, 0);
+		}
+		function handleKeydown(e: KeyboardEvent) {
+			if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'p')) {
+				e.preventDefault();
+			}
 		}
 		document.addEventListener('visibilitychange', handleVisibilityChange);
 		window.addEventListener('blur', handleBlur);
+		window.addEventListener('keydown', handleKeydown);
 		return () => {
 			document.removeEventListener('visibilitychange', handleVisibilityChange);
 			window.removeEventListener('blur', handleBlur);
+			window.removeEventListener('keydown', handleKeydown);
 		};
 	});
 
@@ -67,6 +80,11 @@
 		else if (activeTab === 'css') { css = v; }
 		else { js = v; }
 		store.sendCodeUpdate(html, css, js);
+	}
+
+	function handleSubmit() {
+		editorRef?.flush();
+		store.sendSubmit();
 	}
 </script>
 
@@ -101,9 +119,11 @@
 			</div>
 			<div class="editor-wrapper flex-1 overflow-hidden">
 				<Editor
+					bind:this={editorRef}
 					language={activeTab}
 					value={activeTab === 'html' ? html : activeTab === 'css' ? css : js}
 					readonly={frozen}
+					allowInternalClipboard={store.allowInternalClipboard}
 					onChange={onEditorChange}
 					onCopyAttempt={() => store.sendCopyAttempt()}
 				/>
@@ -115,7 +135,9 @@
 	</div>
 
 	<div class="docs-panel h-[300px] overflow-hidden border-t border-white/10 {docsOpen ? '' : 'hidden'}">
-		<iframe src={docsUrl} title="Documentation" class="h-full w-full border-none" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
+		{#if docsUrl}
+			<iframe src={docsUrl} title="Documentation" class="h-full w-full border-none" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
+		{/if}
 	</div>
 
 	<div class="bottom-bar flex items-center justify-between border-t border-white/10 bg-hacksu-grey px-4 py-2">
@@ -134,9 +156,27 @@
 				<button
 					type="button"
 					class="submit-btn rounded bg-hacksu-green px-4 py-1.5 text-sm font-semibold text-white hover:opacity-90"
-					onclick={() => store.sendSubmit()}
+					onclick={handleSubmit}
 				>Submit</button>
 			{/if}
-		</div>
+	</div>
 	</div>
 </div>
+
+{#if store.eventEnded && !endOverlayDismissed}
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+		<div class="mx-4 max-w-sm rounded-lg border border-white/10 bg-hacksu-grey p-6 text-center shadow-xl">
+			<h2 class="text-2xl font-bold text-white">Event Ended</h2>
+			<p class="mt-2 text-sm text-gray-400">
+				{store.hasSubmitted
+					? 'Time is up. Your submitted code has been locked in.'
+					: 'Time is up. Your code as it stood has been locked in.'}
+			</p>
+			<button
+				type="button"
+				class="mt-4 rounded border border-white/20 px-4 py-1.5 text-sm text-gray-300 hover:border-white/40 hover:text-white"
+				onclick={() => (endOverlayDismissed = true)}
+			>View my code</button>
+		</div>
+	</div>
+{/if}

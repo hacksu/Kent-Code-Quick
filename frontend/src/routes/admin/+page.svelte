@@ -7,6 +7,7 @@
 	let username = $state<string | null>(null);
 	let authed = $state(false);
 	let durationMinutes = $state(45);
+	let allowInternalClipboard = $state(true);
 	let starting = $state(false);
 
 	const store = createWatchStore();
@@ -28,7 +29,7 @@
 
 	function handleStart() {
 		starting = true;
-		store.sendStartGame(durationMinutes * 60 * 1000);
+		store.sendStartGame(durationMinutes * 60 * 1000, allowInternalClipboard);
 		starting = false;
 	}
 
@@ -74,7 +75,18 @@
 							bind:value={durationMinutes}
 						/>
 					</div>
+					<label class="mt-3 flex items-center gap-2 text-sm text-gray-300">
+						<input type="checkbox" bind:checked={allowInternalClipboard} class="h-4 w-4" />
+						Allow copy/paste within a player's own editor
+					</label>
 					<p class="mt-2 text-sm text-gray-500">{store.lobbyCount} player{store.lobbyCount !== 1 ? 's' : ''} in lobby</p>
+					{#if store.lobbyNames.length > 0}
+						<ul class="mt-2 flex flex-wrap gap-1.5">
+							{#each store.lobbyNames as name}
+								<li class="rounded bg-white/10 px-2 py-0.5 text-xs text-gray-300">{name}</li>
+							{/each}
+						</ul>
+					{/if}
 					<button
 						type="button"
 						disabled={starting || store.lobbyCount === 0}
@@ -91,7 +103,10 @@
 					<div class="mb-4">
 						<Timer elapsed={store.elapsed} durationMs={store.durationMs} />
 					</div>
-					<p class="mb-4 text-sm text-gray-400">{Object.keys(store.participants).length} participants</p>
+					<p class="mb-1 text-sm text-gray-400">{Object.keys(store.participants).length} participants</p>
+					<p class="mb-4 text-xs text-gray-500">
+						Internal copy/paste: {store.allowInternalClipboard ? 'allowed' : 'blocked'}
+					</p>
 					<div class="flex gap-3">
 						<a href="/watch" class="flex-1 rounded-lg border border-white/20 px-4 py-2 text-center text-sm font-semibold text-white hover:bg-white/10">
 							Live View

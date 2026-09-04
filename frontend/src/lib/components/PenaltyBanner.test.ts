@@ -19,7 +19,7 @@ describe('PenaltyBanner - visibility', () => {
 
 	it('shows banner when penalty is provided', () => {
 		const { container } = render(PenaltyBanner, {
-			penalty: { penalty_ms: 5000, tab_out_count: 1 },
+			penalty: { type: 'tab_out', count: 1 },
 		});
 		flushSync();
 		expect(container.querySelector('.penalty-banner')).toBeTruthy();
@@ -27,7 +27,7 @@ describe('PenaltyBanner - visibility', () => {
 
 	it('auto-dismisses after 4 seconds', () => {
 		const { container } = render(PenaltyBanner, {
-			penalty: { penalty_ms: 5000, tab_out_count: 1 },
+			penalty: { type: 'tab_out', count: 1 },
 		});
 		flushSync();
 		expect(container.querySelector('.penalty-banner')).toBeTruthy();
@@ -38,7 +38,7 @@ describe('PenaltyBanner - visibility', () => {
 
 	it('does not dismiss before 4 seconds', () => {
 		const { container } = render(PenaltyBanner, {
-			penalty: { penalty_ms: 5000, tab_out_count: 1 },
+			penalty: { type: 'tab_out', count: 1 },
 		});
 		flushSync();
 		vi.advanceTimersByTime(3999);
@@ -48,50 +48,35 @@ describe('PenaltyBanner - visibility', () => {
 });
 
 describe('PenaltyBanner - content', () => {
-	it('shows the total penalty in seconds', () => {
-		const { container } = render(PenaltyBanner, {
-			penalty: { penalty_ms: 25000, tab_out_count: 2 },
-		});
-		flushSync();
-		expect(container.querySelector('.penalty-banner')?.textContent).toContain('25s');
-	});
-
 	it('shows the tab-out count', () => {
 		const { container } = render(PenaltyBanner, {
-			penalty: { penalty_ms: 5000, tab_out_count: 1 },
+			penalty: { type: 'tab_out', count: 2 },
 		});
 		flushSync();
-		expect(container.querySelector('.penalty-banner')?.textContent).toContain('#1');
+		expect(container.querySelector('.penalty-banner')?.textContent).toContain('2');
+		expect(container.querySelector('.penalty-banner')?.textContent).toContain('Tab out');
 	});
 
-	it('shows next penalty step', () => {
+	it('shows the copy attempt count', () => {
 		const { container } = render(PenaltyBanner, {
-			penalty: { penalty_ms: 5000, tab_out_count: 1 },
+			penalty: { type: 'copy', count: 3 },
 		});
 		flushSync();
-		// After 1 tab-out, next step is index 1 = 25s
-		expect(container.querySelector('.penalty-banner')?.textContent).toContain('next: 25s');
-	});
-
-	it('caps next penalty at last step', () => {
-		const { container } = render(PenaltyBanner, {
-			penalty: { penalty_ms: 5000, tab_out_count: 999 },
-		});
-		flushSync();
-		expect(container.querySelector('.penalty-banner')?.textContent).toContain('next: 960s');
+		expect(container.querySelector('.penalty-banner')?.textContent).toContain('3');
+		expect(container.querySelector('.penalty-banner')?.textContent).toContain('Copy attempt');
 	});
 });
 
 describe('PenaltyBanner - timer reset', () => {
 	it('resets the dismiss timer when a new penalty arrives', async () => {
 		const { container, rerender } = render(PenaltyBanner, {
-			penalty: { penalty_ms: 5000, tab_out_count: 1 },
+			penalty: { type: 'tab_out', count: 1 },
 		});
 		flushSync();
 		vi.advanceTimersByTime(3000);
 		flushSync();
 		// new penalty at t=3000
-		await rerender({ penalty: { penalty_ms: 30000, tab_out_count: 2 } });
+		await rerender({ penalty: { type: 'tab_out', count: 2 } });
 		flushSync();
 		vi.advanceTimersByTime(3000);
 		flushSync();

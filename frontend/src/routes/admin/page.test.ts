@@ -82,6 +82,15 @@ describe('Admin page - dashboard', () => {
 		await waitFor(() => expect(getByRole('button', { name: /start game/i })).toBeTruthy());
 	});
 
+	it('shows the names of participants in the lobby', async () => {
+		const { getByRole, getByText } = render(Page);
+		await waitFor(() => expect(getByRole('button', { name: /start game/i })).toBeTruthy());
+		fireSocketEvent('lobby_update', { lobby_count: 2, lobby_names: ['Alice', 'Bob'] });
+		flushSync();
+		expect(getByText('Alice')).toBeTruthy();
+		expect(getByText('Bob')).toBeTruthy();
+	});
+
 	it('emits start_game with the chosen duration when clicked', async () => {
 		const { getByRole } = render(Page);
 		const btn = await waitFor(() => getByRole('button', { name: /start game/i }));
@@ -90,6 +99,9 @@ describe('Admin page - dashboard', () => {
 		flushSync();
 		await fireEvent.click(btn);
 		// Default duration is 45 minutes -> 2_700_000 ms.
-		expect(mockSocket.emit).toHaveBeenCalledWith('start_game', { duration_ms: 2_700_000 });
+		expect(mockSocket.emit).toHaveBeenCalledWith('start_game', {
+			duration_ms: 2_700_000,
+			allow_internal_clipboard: true,
+		});
 	});
 });

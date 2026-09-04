@@ -10,7 +10,6 @@ from game_manager import (
     create_game, get_or_create_game, add_to_lobby,
     start_game, end_game, apply_penalty, record_copy_attempt,
     snapshot_participant, auto_snapshot_all, get_participant_by_sid,
-    _PENALTY_SCHEDULE,
 )
 
 
@@ -91,16 +90,45 @@ def test_apply_penalty_increments_correctly():
     start_game(g)
     result = apply_penalty("sid1")
     assert result is not None
-    assert result["penalty_ms"] == _PENALTY_SCHEDULE[0] * 1000
-    assert result["tab_out_count"] == 1
+    assert result == {"tab_out_count": 1}
     result2 = apply_penalty("sid1")
-    assert result2["penalty_ms"] == (_PENALTY_SCHEDULE[0] + _PENALTY_SCHEDULE[1]) * 1000
-    assert result2["tab_out_count"] == 2
+    assert result2 == {"tab_out_count": 2}
 
 
 def test_apply_penalty_unknown_sid_returns_none():
     create_game()
     result = apply_penalty("unknown-sid")
+    assert result is None
+
+
+def test_apply_penalty_noop_after_submission():
+    g = create_game()
+    add_to_lobby(g, None, "Alice", "sid1")
+    start_game(g)
+    snapshot_participant("sid1")
+    result = apply_penalty("sid1")
+    assert result is None
+    p = list(g.participants.values())[0]
+    assert p.tab_out_count == 0
+
+
+def test_record_copy_attempt_noop_after_submission():
+    g = create_game()
+    add_to_lobby(g, None, "Alice", "sid1")
+    start_game(g)
+    snapshot_participant("sid1")
+    result = record_copy_attempt("sid1")
+    assert result is None
+    p = list(g.participants.values())[0]
+    assert p.copy_attempt_count == 0
+
+
+def test_apply_penalty_noop_after_game_ends():
+    g = create_game()
+    add_to_lobby(g, None, "Alice", "sid1")
+    start_game(g)
+    end_game(g)
+    result = apply_penalty("sid1")
     assert result is None
 
 
@@ -142,5 +170,7 @@ def test_to_dict_structure():
     d = g.to_dict()
     assert d["status"] == "waiting"
     assert d["duration_ms"] == 30_000
+    assert d["allow_internal_clipboard"] is True
     assert d["lobby_count"] == 1
+    assert d["lobby_names"] == ["Alice"]
     assert d["participants"] == {}
