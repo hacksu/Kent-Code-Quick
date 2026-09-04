@@ -68,6 +68,7 @@ class GameState:
             "ended_at": self.ended_at,
             "allow_internal_clipboard": self.allow_internal_clipboard,
             "lobby_count": len(self.lobby),
+            "lobby_names": [entry.name for entry in self.lobby.values()],
             "participants": {t: p.to_dict() for t, p in self.participants.items()},
         }
 

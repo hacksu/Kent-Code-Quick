@@ -80,6 +80,13 @@
 						Allow copy/paste within a player's own editor
 					</label>
 					<p class="mt-2 text-sm text-gray-500">{store.lobbyCount} player{store.lobbyCount !== 1 ? 's' : ''} in lobby</p>
+					{#if store.lobbyNames.length > 0}
+						<ul class="mt-2 flex flex-wrap gap-1.5">
+							{#each store.lobbyNames as name}
+								<li class="rounded bg-white/10 px-2 py-0.5 text-xs text-gray-300">{name}</li>
+							{/each}
+						</ul>
+					{/if}
 					<button
 						type="button"
 						disabled={starting || store.lobbyCount === 0}
