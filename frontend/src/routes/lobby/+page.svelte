@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { io, type Socket } from 'socket.io-client';
 	import { loadToken, saveToken } from '$lib/store';
-	import kcqLogo from '$lib/assets/images/kcq_logo.svg';
+	import kcqLogo from '$lib/assets/images/kcq_logo.png';
 	import ParticleBackground from '$lib/components/ParticleBackground.svelte';
 	import PenaltyRules from '$lib/components/PenaltyRules.svelte';
 
