@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { createWatchStore } from '$lib/game.svelte';
 	import Timer from '$lib/components/Timer.svelte';
-	import kcqLogo from '$lib/assets/images/kcq_logo.svg';
+	import kcqLogo from '$lib/assets/images/kcq_logo.png';
 
 	let username = $state<string | null>(null);
 	let authed = $state(false);

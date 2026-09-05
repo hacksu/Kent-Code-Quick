@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import kcqLogo from '$lib/assets/images/kcq_logo.svg';
+	import kcqLogo from '$lib/assets/images/kcq_logo.png';
 	import discordIcon from '$lib/assets/images/logos/discord.svg';
 	import ParticleBackground from '$lib/components/ParticleBackground.svelte';
 	import Footer from '$lib/components/Footer.svelte';

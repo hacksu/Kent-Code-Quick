@@ -1,12 +1,12 @@
 <script lang="ts">
-	import favicon from '$lib/assets/images/favicon.svg';
+	import favicon from '$lib/assets/images/favicon.png';
 	import '../app.css';
 
 	let { children } = $props();
 </script>
 
 <svelte:head>
-	<link rel="icon" href={favicon} />
+	<link rel="icon" type="image/png" href={favicon} />
 	<title>Kent Code Quick</title>
 	<meta
 		name="description"
