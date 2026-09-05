@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { createWatchStore } from '$lib/game.svelte';
-	import kcqLogo from '$lib/assets/images/kcq_logo.svg';
+	import kcqLogo from '$lib/assets/images/kcq_logo.png';
 	import ParticipantCard from '$lib/components/ParticipantCard.svelte';
 	import ParticipantFocus from '$lib/components/ParticipantFocus.svelte';
 	import Timer from '$lib/components/Timer.svelte';
