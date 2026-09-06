@@ -21,8 +21,11 @@
 			const storedToken = loadToken();
 
 			socket.on('connect', () => {
+				// The server takes the display name from the Discord session; this
+				// is only a hint for older clients.
 				socket.emit('join_lobby', { name, token: storedToken ?? undefined });
 			});
+			socket.on('auth_required', () => { window.location.href = '/'; });
 			socket.on('token_assigned', ({ token }: { token: string }) => { saveToken(token); });
 			socket.on('lobby_update', ({ lobby_count }: { lobby_count: number }) => { lobbyCount = lobby_count; });
 			socket.on('game_start', ({ token }: { token: string }) => { saveToken(token); window.location.href = '/play'; });

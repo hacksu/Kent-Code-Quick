@@ -5,9 +5,9 @@
 	import ParticleBackground from '$lib/components/ParticleBackground.svelte';
 	import Footer from '$lib/components/Footer.svelte';
 
-	const DISCORD_CLIENT_ID = '1415050533281988759';
-
 	let checking = $state(true);
+	let clientId = $state('');
+	let configError = $state(false);
 
 	onMount(async () => {
 		try {
@@ -20,16 +20,39 @@
 		} catch {
 			// network error, fall through
 		}
+
+		try {
+			const cfg = await fetch('/api/config');
+			if (cfg.ok) clientId = (await cfg.json()).discord_client_id ?? '';
+		} catch {
+			// leave clientId empty; the button below explains the problem
+		}
+		configError = clientId === '';
 		checking = false;
 	});
 
+	function randomState(): string {
+		if (typeof crypto !== 'undefined') {
+			if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+			if (typeof crypto.getRandomValues === 'function') {
+				const bytes = crypto.getRandomValues(new Uint8Array(16));
+				return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+			}
+		}
+		return `${Date.now().toString(16)}${Math.random().toString(16).slice(2)}`;
+	}
+
 	function login() {
+		if (!clientId) return;
 		const redirectUri = `${window.location.origin}/auth/callback`;
+		const state = randomState();
+		sessionStorage.setItem('oauthState', state);
 		const params = new URLSearchParams({
-			client_id: DISCORD_CLIENT_ID,
+			client_id: clientId,
 			redirect_uri: redirectUri,
 			response_type: 'code',
 			scope: 'identify guilds.members.read',
+			state,
 		});
 		window.location.href = `https://discord.com/oauth2/authorize?${params}`;
 	}
@@ -55,11 +78,17 @@
 				<button
 					type="button"
 					onclick={login}
-					class="mt-4 flex w-full cursor-pointer items-center justify-center gap-3 rounded-lg bg-hacksu-green px-4 py-3.5 text-base font-bold text-white transition-colors hover:bg-hacksu-green/90"
+					disabled={configError}
+					class="mt-4 flex w-full cursor-pointer items-center justify-center gap-3 rounded-lg bg-hacksu-green px-4 py-3.5 text-base font-bold text-white transition-colors hover:bg-hacksu-green/90 disabled:cursor-not-allowed disabled:opacity-40"
 				>
 					<img src={discordIcon} alt="" class="h-6 w-6 brightness-0 invert" />
 					Login with Discord
 				</button>
+				{#if configError}
+					<p class="mt-3 text-center text-sm text-red-400" data-testid="config-error">
+						Login is unavailable: the server has no Discord client ID configured.
+					</p>
+				{/if}
 			</div>
 		</div>
 

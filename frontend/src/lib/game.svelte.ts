@@ -1,5 +1,5 @@
 import { io, type Socket } from 'socket.io-client';
-import { loadToken, saveToken } from './store';
+import { saveToken } from './store';
 
 export interface Participant {
 	id: string;
@@ -35,6 +35,7 @@ export interface GameStatePayload {
 export function createPlayStore(token: string) {
 	const socket: Socket = io({ autoConnect: false });
 
+	let activeToken = $state(token);
 	let participants = $state<Record<string, Participant>>({});
 	let currentPenalty = $state<PenaltyPayload | null>(null);
 	let hasSubmitted = $state(false);
@@ -44,7 +45,12 @@ export function createPlayStore(token: string) {
 	let allowInternalClipboard = $state(true);
 
 	socket.on('connect', () => {
-		socket.emit('join_game', { token });
+		socket.emit('join_game', { token: activeToken });
+	});
+
+	socket.on('token_assigned', ({ token: reissued }: { token: string }) => {
+		activeToken = reissued;
+		saveToken(reissued);
 	});
 
 	socket.on('game_state', (data: GameStatePayload) => {
@@ -52,7 +58,7 @@ export function createPlayStore(token: string) {
 		durationMs = data.duration_ms;
 		allowInternalClipboard = data.allow_internal_clipboard;
 		if (data.status === 'ended') eventEnded = true;
-		if (data.participants[token]?.submitted_at !== null) hasSubmitted = true;
+		if (data.participants[activeToken]?.submitted_at != null) hasSubmitted = true;
 	});
 
 	socket.on('participant_update', (p: { token: string } & Partial<Participant>) => {
@@ -66,6 +72,7 @@ export function createPlayStore(token: string) {
 	socket.on('event_end', () => { eventEnded = true; });
 	socket.on('timer_tick', (data: { elapsed: number }) => { elapsed = data.elapsed; });
 	socket.on('game_locked', () => { window.location.href = '/'; });
+	socket.on('auth_required', () => { window.location.href = '/'; });
 
 	socket.connect();
 
@@ -78,7 +85,7 @@ export function createPlayStore(token: string) {
 		get durationMs() { return durationMs; },
 		get allowInternalClipboard() { return allowInternalClipboard; },
 		get timeRemaining() { return durationMs - elapsed; },
-		get myParticipant() { return participants[token] ?? null; },
+		get myParticipant() { return participants[activeToken] ?? null; },
 		sendCodeUpdate(html: string, css: string, js: string) { socket.emit('code_update', { html, css, js }); },
 		sendTabOut() { socket.emit('tab_out', {}); },
 		sendSubmit() { socket.emit('submit', {}); },
@@ -123,6 +130,7 @@ export function createWatchStore() {
 	});
 
 	socket.on('timer_tick', (data: { elapsed: number }) => { elapsed = data.elapsed; });
+	socket.on('auth_required', () => { window.location.href = '/'; });
 
 	socket.on('event_end', (data: GameStatePayload) => {
 		participants = data.participants;

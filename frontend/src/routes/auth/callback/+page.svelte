@@ -11,6 +11,13 @@
 			return;
 		}
 
+		const expectedState = sessionStorage.getItem('oauthState');
+		sessionStorage.removeItem('oauthState');
+		if (!expectedState || params.get('state') !== expectedState) {
+			status = 'Login failed: state mismatch. Please start again from the home page.';
+			return;
+		}
+
 		const redirectUri = `${window.location.origin}/auth/callback`;
 		const url = `/api/auth/exchange?code=${encodeURIComponent(code)}&redirect_uri=${encodeURIComponent(redirectUri)}`;
 		try {
