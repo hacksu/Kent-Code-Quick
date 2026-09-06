@@ -5,6 +5,10 @@
 	import ParticleBackground from '$lib/components/ParticleBackground.svelte';
 	import Footer from '$lib/components/Footer.svelte';
 
+	const EVENT_DATE = 'September 24th';
+	const EVENT_TIME = '6:00-9:00pm';
+	const EVENT_PLACE = 'Math Emporium, KSU Library room 210H';
+
 	let checking = $state(true);
 	let clientId = $state('');
 	let configError = $state(false);
@@ -21,6 +25,8 @@
 			// network error, fall through
 		}
 
+		// The OAuth client id comes from the server so it can never drift from
+		// the client secret the server exchanges the code with.
 		try {
 			const cfg = await fetch('/api/config');
 			if (cfg.ok) clientId = (await cfg.json()).discord_client_id ?? '';
@@ -31,6 +37,9 @@
 		checking = false;
 	});
 
+	// crypto.randomUUID is only defined in secure contexts, and the event is
+	// often served over plain HTTP on a local network -- fall back to
+	// getRandomValues, which is not gated, and then to Math.random.
 	function randomState(): string {
 		if (typeof crypto !== 'undefined') {
 			if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
@@ -45,6 +54,8 @@
 	function login() {
 		if (!clientId) return;
 		const redirectUri = `${window.location.origin}/auth/callback`;
+		// CSRF protection: the callback only exchanges a code that comes back
+		// with the state value we generated for this browser.
 		const state = randomState();
 		sessionStorage.setItem('oauthState', state);
 		const params = new URLSearchParams({
@@ -52,45 +63,92 @@
 			redirect_uri: redirectUri,
 			response_type: 'code',
 			scope: 'identify guilds.members.read',
-			state,
+			state
 		});
 		window.location.href = `https://discord.com/oauth2/authorize?${params}`;
 	}
+
+	const specLabel = 'font-display text-[0.7rem] font-semibold tracking-[0.16em] text-gray-500 uppercase';
+	const specCell = 'grid justify-items-center gap-0.5 px-4 py-3.5';
 </script>
 
 <ParticleBackground />
 
 {#if checking}
 	<div class="relative z-10 flex min-h-screen items-center justify-center">
-		<div class="h-6 w-6 animate-spin rounded-full border-2 border-white/20 border-t-hacksu-green"></div>
+		<div
+			class="h-6 w-6 animate-spin rounded-full border-2 border-white/20 border-t-hacksu-green"
+		></div>
 	</div>
 {:else}
-	<div class="relative z-10 flex min-h-screen flex-col">
-		<div class="flex flex-1 flex-col items-center justify-center px-4 text-white">
-			<img class="mb-8 w-[40vw] max-w-[360px]" src={kcqLogo} alt="Kent Code Quick" />
+	<div class="relative z-10 flex min-h-screen flex-col font-body">
+		<main
+			class="flex flex-1 flex-col items-center justify-center gap-[clamp(0.85rem,2.2vh,1.35rem)] px-5 py-[clamp(1.5rem,5vh,3.5rem)] text-center text-white"
+		>
+			<img class="w-[clamp(88px,15vw,126px)]" src={kcqLogo} alt="" />
 
-			<h1 class="text-center text-3xl font-bold sm:text-4xl">Kent Code Quick</h1>
-			<p class="mt-3 max-w-md text-center text-lg text-gray-300">
-				HacKSU's live front-end coding competition.
+			<h1
+				class="font-display text-[clamp(2.6rem,8vw,4.6rem)] leading-[0.9] font-extrabold tracking-[0.01em] uppercase"
+			>
+				Kent Code Quick
+			</h1>
+
+			<p class="max-w-[46ch] text-[clamp(1rem,1.5vw,1.1rem)] text-gray-400">
+				A live front-end sprint. You get a design and a hundred minutes to rebuild it from
+				scratch and make it yours.
 			</p>
 
-			<div class="mt-10 w-full max-w-sm">
-				<button
-					type="button"
-					onclick={login}
-					disabled={configError}
-					class="mt-4 flex w-full cursor-pointer items-center justify-center gap-3 rounded-lg bg-hacksu-green px-4 py-3.5 text-base font-bold text-white transition-colors hover:bg-hacksu-green/90 disabled:cursor-not-allowed disabled:opacity-40"
+			<dl
+				class="grid w-full max-w-[620px] grid-cols-1 overflow-hidden rounded-xl border border-white/10 bg-hacksu-grey/70 backdrop-blur-sm sm:grid-cols-3"
+			>
+				<div class={specCell}>
+					<dt class={specLabel}>On the clock</dt>
+					<dd
+						class="font-display text-xl font-semibold tracking-wide text-hacksu-blue tabular-nums"
+					>
+						100:00
+					</dd>
+				</div>
+				<div class="{specCell} border-t border-white/10 sm:border-t-0 sm:border-l">
+					<dt class={specLabel}>You write</dt>
+					<dd class="text-[0.92rem]">HTML &middot; CSS &middot; JS</dd>
+				</div>
+				<div class="{specCell} border-t border-white/10 sm:border-t-0 sm:border-l">
+					<dt class={specLabel}>You can't</dt>
+					<dd class="text-[0.92rem]">Use AI, paste, or tab out</dd>
+				</div>
+			</dl>
+
+			<div class="grid gap-1">
+				<p
+					class="flex flex-wrap items-baseline justify-center gap-x-3 gap-y-1 font-racing text-[clamp(1.3rem,3vw,1.75rem)] tracking-wide"
 				>
-					<img src={discordIcon} alt="" class="h-6 w-6 brightness-0 invert" />
-					Login with Discord
-				</button>
-				{#if configError}
-					<p class="mt-3 text-center text-sm text-red-400" data-testid="config-error">
-						Login is unavailable: the server has no Discord client ID configured.
-					</p>
-				{/if}
+					{EVENT_DATE}
+					<span class="text-hacksu-green tabular-nums">{EVENT_TIME}</span>
+				</p>
+				<p class="text-sm text-gray-400">{EVENT_PLACE}</p>
 			</div>
-		</div>
+
+			<button
+				type="button"
+				onclick={login}
+				disabled={configError}
+				class="mt-1 flex cursor-pointer items-center gap-2.5 rounded-lg bg-hacksu-green px-5 py-3.5 text-[0.95rem] font-medium text-[#07130d] transition-colors hover:bg-hacksu-green/90 disabled:cursor-not-allowed disabled:opacity-40"
+			>
+				<img src={discordIcon} alt="" class="h-5 w-5" />
+				Sign up with Discord
+			</button>
+
+			{#if configError}
+				<p class="text-sm text-red-400" data-testid="config-error">
+					Sign-up is unavailable: the server has no Discord client ID configured.
+				</p>
+			{:else}
+				<p class="font-display text-sm tracking-[0.1em] text-gray-500 uppercase">
+					No experience required &middot; Bring a laptop
+				</p>
+			{/if}
+		</main>
 
 		<Footer />
 	</div>

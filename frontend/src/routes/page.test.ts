@@ -50,26 +50,26 @@ describe('Home page - login', () => {
 
 	it('shows a Login with Discord button when not authenticated', async () => {
 		const { container } = render(Page);
-		await waitFor(() => expect(container.textContent).toMatch(/login with discord/i));
+		await waitFor(() => expect(container.textContent).toMatch(/sign up with discord/i));
 	});
 
 	it('sends the user to Discord OAuth when login is clicked', async () => {
 		const { getByRole } = render(Page);
-		const btn = await waitFor(() => getByRole('button', { name: /login with discord/i }));
+		const btn = await waitFor(() => getByRole('button', { name: /sign up with discord/i }));
 		await fireEvent.click(btn);
 		expect(locationMock.href).toMatch(/^https:\/\/discord\.com\/oauth2\/authorize/);
 	});
 
 	it('uses the client id served by the backend rather than a hardcoded one', async () => {
 		const { getByRole } = render(Page);
-		const btn = await waitFor(() => getByRole('button', { name: /login with discord/i }));
+		const btn = await waitFor(() => getByRole('button', { name: /sign up with discord/i }));
 		await fireEvent.click(btn);
 		expect(locationMock.href).toContain('client_id=client-id-from-server');
 	});
 
 	it('sends a state parameter and remembers it for the callback to verify', async () => {
 		const { getByRole } = render(Page);
-		const btn = await waitFor(() => getByRole('button', { name: /login with discord/i }));
+		const btn = await waitFor(() => getByRole('button', { name: /sign up with discord/i }));
 		await fireEvent.click(btn);
 		const state = new URL(locationMock.href).searchParams.get('state');
 		expect(state).toBeTruthy();
@@ -82,7 +82,7 @@ describe('Home page - misconfigured server', () => {
 		mockFetch.mockResolvedValueOnce({ ok: false, status: 401, json: async () => ({}) });
 		mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ discord_client_id: '' }) });
 		const { getByRole, getByTestId } = render(Page);
-		const btn = await waitFor(() => getByRole('button', { name: /login with discord/i }));
+		const btn = await waitFor(() => getByRole('button', { name: /sign up with discord/i }));
 		expect((btn as HTMLButtonElement).disabled).toBe(true);
 		expect(getByTestId('config-error').textContent).toMatch(/no discord client id/i);
 		await fireEvent.click(btn);

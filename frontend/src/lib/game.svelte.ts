@@ -1,6 +1,8 @@
 import { io, type Socket } from 'socket.io-client';
 import { saveToken } from './store';
 
+export const DEFAULT_DURATION_MS = 100 * 60 * 1000;
+
 export interface Participant {
 	id: string;
 	name: string;
@@ -41,7 +43,7 @@ export function createPlayStore(token: string) {
 	let hasSubmitted = $state(false);
 	let eventEnded = $state(false);
 	let elapsed = $state(0);
-	let durationMs = $state(45 * 60 * 1000);
+	let durationMs = $state(DEFAULT_DURATION_MS);
 	let allowInternalClipboard = $state(true);
 
 	socket.on('connect', () => {
@@ -102,7 +104,7 @@ export function createWatchStore() {
 	let lobbyNames = $state<string[]>([]);
 	let gameStatus = $state<'waiting' | 'active' | 'ended'>('waiting');
 	let elapsed = $state(0);
-	let durationMs = $state(45 * 60 * 1000);
+	let durationMs = $state(DEFAULT_DURATION_MS);
 	let allowInternalClipboard = $state(true);
 	let eventEnded = $state(false);
 

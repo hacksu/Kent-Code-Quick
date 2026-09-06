@@ -6,7 +6,7 @@
 
 	let username = $state<string | null>(null);
 	let authed = $state(false);
-	let durationMinutes = $state(45);
+	let durationMinutes = $state(100);
 	let allowInternalClipboard = $state(true);
 	let starting = $state(false);
 

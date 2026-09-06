@@ -98,9 +98,9 @@ describe('Admin page - dashboard', () => {
 		fireSocketEvent('lobby_update', { lobby_count: 3 });
 		flushSync();
 		await fireEvent.click(btn);
-		// Default duration is 45 minutes -> 2_700_000 ms.
+		// Default duration is 100 minutes -> 6_000_000 ms.
 		expect(mockSocket.emit).toHaveBeenCalledWith('start_game', {
-			duration_ms: 2_700_000,
+			duration_ms: 6_000_000,
 			allow_internal_clipboard: true,
 		});
 	});

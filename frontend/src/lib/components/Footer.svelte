@@ -6,7 +6,7 @@
 	const socialLinks = [
 		{ name: 'Instagram', href: 'https://www.instagram.com/hacksu/', icon: instagramIcon },
 		{ name: 'GitHub', href: 'https://github.com/hacksu', icon: githubIcon },
-		{ name: 'Discord', href: 'https://discord.gg/rJDdvnt', icon: discordIcon }
+		{ name: 'Discord', href: 'https://discord.gg/hrRfNQBz5z', icon: discordIcon }
 	];
 </script>
 

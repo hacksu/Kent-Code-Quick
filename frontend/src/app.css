@@ -10,6 +10,10 @@
   /* Accent maps to the HacKSU blue so every `brand` usage is on-brand */
   --color-brand: #4683ff;
   --color-brand-dark: #3570e6;
+
+  --font-display: "Saira Condensed", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "Jost", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-racing: "Racing Sans One", "Saira Condensed", system-ui, sans-serif;
 }
 
 html,
