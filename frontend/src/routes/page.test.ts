@@ -98,25 +98,31 @@ describe('Home page - misconfigured server', () => {
 });
 
 describe('Home page - sign-ups not open yet', () => {
-	it('hides the sign-up button until an organizer switches it on', async () => {
+	function closedSignups(config: Record<string, unknown>) {
 		mockFetch.mockResolvedValueOnce({ ok: false, status: 401, json: async () => ({}) });
-		mockFetch.mockResolvedValueOnce({
-			ok: true,
-			json: async () => ({ discord_client_id: 'client-id-from-server', signup_open: false }),
-		});
+		mockFetch.mockResolvedValueOnce({ ok: true, json: async () => config });
+	}
+
+	it('points people at the Discord instead of the sign-up button', async () => {
+		closedSignups({ discord_client_id: 'client-id-from-server', signup_open: false });
 		const { queryByRole, findByTestId } = render(Page);
-		expect((await findByTestId('signup-closed')).textContent).toMatch(/sign-ups open at the event/i);
+		const cta = await findByTestId('discord-cta');
+		expect(cta.textContent).toMatch(/join the discord for more updates/i);
+		expect(cta.getAttribute('href')).toBe('https://discord.gg/hrRfNQBz5z');
 		expect(queryByRole('button', { name: /sign up with discord/i })).toBeNull();
 	});
 
 	it('treats a missing signup_open as closed', async () => {
-		mockFetch.mockResolvedValueOnce({ ok: false, status: 401, json: async () => ({}) });
-		mockFetch.mockResolvedValueOnce({
-			ok: true,
-			json: async () => ({ discord_client_id: 'client-id-from-server' }),
-		});
+		closedSignups({ discord_client_id: 'client-id-from-server' });
 		const { queryByRole, findByTestId } = render(Page);
-		await findByTestId('signup-closed');
+		await findByTestId('discord-cta');
 		expect(queryByRole('button', { name: /sign up with discord/i })).toBeNull();
+	});
+
+	it('drops the Discord link once sign-ups open', async () => {
+		closedSignups({ discord_client_id: 'client-id-from-server', signup_open: true });
+		const { queryByTestId, findByRole } = render(Page);
+		await findByRole('button', { name: /sign up with discord/i });
+		expect(queryByTestId('discord-cta')).toBeNull();
 	});
 });

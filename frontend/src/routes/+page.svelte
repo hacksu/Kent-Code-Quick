@@ -4,6 +4,7 @@
 	import discordIcon from '$lib/assets/images/logos/discord.svg';
 	import ParticleBackground from '$lib/components/ParticleBackground.svelte';
 	import Footer from '$lib/components/Footer.svelte';
+	import { DISCORD_INVITE } from '$lib/links';
 
 	const EVENT_DATE = 'September 24th';
 	const EVENT_TIME = '6:00-9:00pm';
@@ -75,6 +76,9 @@
 
 	const specLabel = 'font-display text-[0.7rem] font-semibold tracking-[0.16em] text-gray-500 uppercase';
 	const specCell = 'grid justify-items-center gap-0.5 px-4 py-3.5';
+	const ctaClass =
+		'mt-1 flex cursor-pointer items-center gap-2.5 rounded-lg bg-hacksu-green px-5 py-3.5 text-[0.95rem] font-medium text-[#07130d] no-underline transition-colors hover:bg-hacksu-green/90 disabled:cursor-not-allowed disabled:opacity-40';
+	const noteClass = 'font-display text-sm tracking-[0.1em] text-gray-500 uppercase';
 </script>
 
 <ParticleBackground />
@@ -135,32 +139,29 @@
 			</div>
 
 			{#if signupOpen}
-				<button
-					type="button"
-					onclick={login}
-					disabled={configError}
-					class="mt-1 flex cursor-pointer items-center gap-2.5 rounded-lg bg-hacksu-green px-5 py-3.5 text-[0.95rem] font-medium text-[#07130d] transition-colors hover:bg-hacksu-green/90 disabled:cursor-not-allowed disabled:opacity-40"
-				>
+				<button type="button" onclick={login} disabled={configError} class={ctaClass}>
 					<img src={discordIcon} alt="" class="h-5 w-5" />
 					Sign up with Discord
 				</button>
-
-				{#if configError}
-					<p class="text-sm text-red-400" data-testid="config-error">
-						Sign-up is unavailable: the server has no Discord client ID configured.
-					</p>
-				{:else}
-					<p class="font-display text-sm tracking-[0.1em] text-gray-500 uppercase">
-						No experience required &middot; Bring a laptop
-					</p>
-				{/if}
 			{:else}
-				<p
-					class="mt-1 font-display text-sm tracking-[0.1em] text-gray-500 uppercase"
-					data-testid="signup-closed"
+				<a
+					href={DISCORD_INVITE}
+					target="_blank"
+					rel="noopener noreferrer"
+					class={ctaClass}
+					data-testid="discord-cta"
 				>
-					Sign-ups open at the event &middot; No experience required
+					<img src={discordIcon} alt="" class="h-5 w-5" />
+					Join the Discord for more updates
+				</a>
+			{/if}
+
+			{#if signupOpen && configError}
+				<p class="text-sm text-red-400" data-testid="config-error">
+					Sign-up is unavailable: the server has no Discord client ID configured.
 				</p>
+			{:else}
+				<p class={noteClass}>No experience required &middot; Bring a laptop</p>
 			{/if}
 		</main>
 

@@ -2,11 +2,12 @@
 	import discordIcon from '$lib/assets/images/logos/discord.svg';
 	import instagramIcon from '$lib/assets/images/logos/instagram.svg';
 	import githubIcon from '$lib/assets/images/logos/github.svg';
+	import { DISCORD_INVITE } from '$lib/links';
 
 	const socialLinks = [
 		{ name: 'Instagram', href: 'https://www.instagram.com/hacksu/', icon: instagramIcon },
 		{ name: 'GitHub', href: 'https://github.com/hacksu', icon: githubIcon },
-		{ name: 'Discord', href: 'https://discord.gg/hrRfNQBz5z', icon: discordIcon }
+		{ name: 'Discord', href: DISCORD_INVITE, icon: discordIcon }
 	];
 </script>
 
