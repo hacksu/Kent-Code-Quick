@@ -10,6 +10,8 @@ from datetime import datetime
 from dataclasses import asdict, dataclass, field
 from typing import Optional, Tuple
 
+DEFAULT_DURATION_MS = 100 * 60 * 1000
+
 
 @dataclass
 class LobbyEntry:
@@ -56,7 +58,7 @@ class Participant:
 @dataclass
 class GameState:
     status: str = "waiting"  # "waiting" | "active" | "ended"
-    duration_ms: int = 45 * 60 * 1000
+    duration_ms: int = DEFAULT_DURATION_MS
     started_at: Optional[float] = None
     ended_at: Optional[float] = None
     allow_internal_clipboard: bool = True  # copy/paste round-tripped within a participant's own editor
@@ -92,14 +94,14 @@ def get_or_create_game() -> GameState:
     return game
 
 
-def create_game(duration_ms: int = 45 * 60 * 1000) -> GameState:
+def create_game(duration_ms: int = DEFAULT_DURATION_MS) -> GameState:
     global game
     game = GameState(duration_ms=duration_ms)
     clear_state_snapshot()
     return game
 
 
-def reset_game(duration_ms: int = 45 * 60 * 1000) -> GameState:
+def reset_game(duration_ms: int = DEFAULT_DURATION_MS) -> GameState:
     global game
     game = GameState(duration_ms=duration_ms)
     clear_state_snapshot()
@@ -289,7 +291,7 @@ def load_state_snapshot() -> Optional[GameState]:
 
     restored = GameState(
         status=payload.get("status", "waiting"),
-        duration_ms=payload.get("duration_ms", 45 * 60 * 1000),
+        duration_ms=payload.get("duration_ms", DEFAULT_DURATION_MS),
         started_at=payload.get("started_at"),
         ended_at=payload.get("ended_at"),
         allow_internal_clipboard=payload.get("allow_internal_clipboard", True),

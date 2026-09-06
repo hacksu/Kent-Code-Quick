@@ -9,7 +9,7 @@ from flask import Flask, jsonify, redirect, request, send_from_directory, sessio
 import requests as http_requests
 from extensions import socketio
 import game_manager
-from game_manager import create_game
+from game_manager import DEFAULT_DURATION_MS, create_game
 
 import ws_handler  # noqa: F401
 
@@ -151,7 +151,7 @@ def auth_logout():
 def get_game():
     g = game_manager.game
     if g is None:
-        return jsonify({"status": "waiting", "lobby_count": 0, "duration_ms": 45 * 60 * 1000})
+        return jsonify({"status": "waiting", "lobby_count": 0, "duration_ms": DEFAULT_DURATION_MS})
     return jsonify({"status": g.status, "lobby_count": len(g.lobby), "duration_ms": g.duration_ms})
 
 
@@ -160,7 +160,7 @@ def create_game_route():
     if not session.get("is_admin"):
         return jsonify({"error": "forbidden"}), 403
     data = request.get_json() or {}
-    duration_ms = data.get("duration_ms", 45 * 60 * 1000)
+    duration_ms = data.get("duration_ms", DEFAULT_DURATION_MS)
     g = create_game(duration_ms=duration_ms)
     return jsonify(g.to_dict()), 201
 
