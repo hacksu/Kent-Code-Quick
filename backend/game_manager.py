@@ -314,3 +314,46 @@ def clear_state_snapshot() -> None:
         os.remove(_state_path())
     except OSError:
         pass
+
+
+DEFAULT_SETTINGS = {"signup_open": False}
+settings: dict = dict(DEFAULT_SETTINGS)
+
+
+def _settings_path() -> str:
+    return os.path.join(os.environ.get("RESULTS_DIR", "results"), "settings.json")
+
+
+def get_settings() -> dict:
+    return dict(settings)
+
+
+def save_settings() -> str:
+    path = _settings_path()
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    tmp = f"{path}.tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(settings, f)
+    os.replace(tmp, path)
+    return path
+
+
+def load_settings() -> dict:
+    global settings
+    try:
+        with open(_settings_path(), encoding="utf-8") as f:
+            stored = json.load(f)
+    except (OSError, ValueError):
+        return get_settings()
+    if isinstance(stored, dict):
+        settings = {k: stored.get(k, v) for k, v in DEFAULT_SETTINGS.items()}
+    return get_settings()
+
+
+def set_signup_open(value: bool) -> dict:
+    settings["signup_open"] = bool(value)
+    try:
+        save_settings()
+    except OSError as exc:
+        print(f"[settings] failed to persist settings: {exc}")
+    return get_settings()

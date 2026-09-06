@@ -12,6 +12,7 @@
 	let checking = $state(true);
 	let clientId = $state('');
 	let configError = $state(false);
+	let signupOpen = $state(false);
 
 	onMount(async () => {
 		try {
@@ -29,7 +30,11 @@
 		// the client secret the server exchanges the code with.
 		try {
 			const cfg = await fetch('/api/config');
-			if (cfg.ok) clientId = (await cfg.json()).discord_client_id ?? '';
+			if (cfg.ok) {
+				const data = await cfg.json();
+				clientId = data.discord_client_id ?? '';
+				signupOpen = data.signup_open === true;
+			}
 		} catch {
 			// leave clientId empty; the button below explains the problem
 		}
@@ -129,23 +134,32 @@
 				<p class="text-sm text-gray-400">{EVENT_PLACE}</p>
 			</div>
 
-			<button
-				type="button"
-				onclick={login}
-				disabled={configError}
-				class="mt-1 flex cursor-pointer items-center gap-2.5 rounded-lg bg-hacksu-green px-5 py-3.5 text-[0.95rem] font-medium text-[#07130d] transition-colors hover:bg-hacksu-green/90 disabled:cursor-not-allowed disabled:opacity-40"
-			>
-				<img src={discordIcon} alt="" class="h-5 w-5" />
-				Sign up with Discord
-			</button>
+			{#if signupOpen}
+				<button
+					type="button"
+					onclick={login}
+					disabled={configError}
+					class="mt-1 flex cursor-pointer items-center gap-2.5 rounded-lg bg-hacksu-green px-5 py-3.5 text-[0.95rem] font-medium text-[#07130d] transition-colors hover:bg-hacksu-green/90 disabled:cursor-not-allowed disabled:opacity-40"
+				>
+					<img src={discordIcon} alt="" class="h-5 w-5" />
+					Sign up with Discord
+				</button>
 
-			{#if configError}
-				<p class="text-sm text-red-400" data-testid="config-error">
-					Sign-up is unavailable: the server has no Discord client ID configured.
-				</p>
+				{#if configError}
+					<p class="text-sm text-red-400" data-testid="config-error">
+						Sign-up is unavailable: the server has no Discord client ID configured.
+					</p>
+				{:else}
+					<p class="font-display text-sm tracking-[0.1em] text-gray-500 uppercase">
+						No experience required &middot; Bring a laptop
+					</p>
+				{/if}
 			{:else}
-				<p class="font-display text-sm tracking-[0.1em] text-gray-500 uppercase">
-					No experience required &middot; Bring a laptop
+				<p
+					class="mt-1 font-display text-sm tracking-[0.1em] text-gray-500 uppercase"
+					data-testid="signup-closed"
+				>
+					Sign-ups open at the event &middot; No experience required
 				</p>
 			{/if}
 		</main>

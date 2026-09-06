@@ -62,7 +62,25 @@ def get_config():
         # Served rather than hardcoded in the bundle so the id the browser
         # sends to Discord can never drift from the secret the server uses.
         "discord_client_id": DISCORD_CLIENT_ID,
+        "signup_open": game_manager.get_settings()["signup_open"],
     })
+
+
+@app.route("/api/settings", methods=["GET"])
+def get_settings_route():
+    if not session.get("is_admin"):
+        return jsonify({"error": "forbidden"}), 403
+    return jsonify(game_manager.get_settings())
+
+
+@app.route("/api/settings", methods=["POST"])
+def update_settings_route():
+    if not session.get("is_admin"):
+        return jsonify({"error": "forbidden"}), 403
+    data = request.get_json(silent=True) or {}
+    if "signup_open" not in data:
+        return jsonify({"error": "missing signup_open"}), 400
+    return jsonify(game_manager.set_signup_open(data["signup_open"]))
 
 
 # --- Auth ---
@@ -239,6 +257,7 @@ def serve_spa(path: str):
 
 
 if __name__ == "__main__":
+    game_manager.load_settings()
     restored = game_manager.load_state_snapshot()
     if restored is not None:
         print(

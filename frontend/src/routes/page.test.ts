@@ -44,7 +44,11 @@ describe('Home page - login', () => {
 		mockFetch.mockResolvedValueOnce({ ok: false, status: 401, json: async () => ({}) });
 		mockFetch.mockResolvedValueOnce({
 			ok: true,
-			json: async () => ({ discord_client_id: 'client-id-from-server', devdocs_url: 'http://localhost:9292' }),
+			json: async () => ({
+				discord_client_id: 'client-id-from-server',
+				devdocs_url: 'http://localhost:9292',
+				signup_open: true,
+			}),
 		});
 	});
 
@@ -80,12 +84,39 @@ describe('Home page - login', () => {
 describe('Home page - misconfigured server', () => {
 	it('disables login and explains when no client id is configured', async () => {
 		mockFetch.mockResolvedValueOnce({ ok: false, status: 401, json: async () => ({}) });
-		mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ discord_client_id: '' }) });
+		mockFetch.mockResolvedValueOnce({
+			ok: true,
+			json: async () => ({ discord_client_id: '', signup_open: true }),
+		});
 		const { getByRole, getByTestId } = render(Page);
 		const btn = await waitFor(() => getByRole('button', { name: /sign up with discord/i }));
 		expect((btn as HTMLButtonElement).disabled).toBe(true);
 		expect(getByTestId('config-error').textContent).toMatch(/no discord client id/i);
 		await fireEvent.click(btn);
 		expect(locationMock.href).toBe('');
+	});
+});
+
+describe('Home page - sign-ups not open yet', () => {
+	it('hides the sign-up button until an organizer switches it on', async () => {
+		mockFetch.mockResolvedValueOnce({ ok: false, status: 401, json: async () => ({}) });
+		mockFetch.mockResolvedValueOnce({
+			ok: true,
+			json: async () => ({ discord_client_id: 'client-id-from-server', signup_open: false }),
+		});
+		const { queryByRole, findByTestId } = render(Page);
+		expect((await findByTestId('signup-closed')).textContent).toMatch(/sign-ups open at the event/i);
+		expect(queryByRole('button', { name: /sign up with discord/i })).toBeNull();
+	});
+
+	it('treats a missing signup_open as closed', async () => {
+		mockFetch.mockResolvedValueOnce({ ok: false, status: 401, json: async () => ({}) });
+		mockFetch.mockResolvedValueOnce({
+			ok: true,
+			json: async () => ({ discord_client_id: 'client-id-from-server' }),
+		});
+		const { queryByRole, findByTestId } = render(Page);
+		await findByTestId('signup-closed');
+		expect(queryByRole('button', { name: /sign up with discord/i })).toBeNull();
 	});
 });

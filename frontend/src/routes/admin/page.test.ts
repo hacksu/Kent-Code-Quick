@@ -105,3 +105,45 @@ describe('Admin page - dashboard', () => {
 		});
 	});
 });
+
+describe('Admin page - landing page sign-up switch', () => {
+	function adminSession(signupOpen: boolean) {
+		mockFetch.mockResolvedValueOnce({
+			ok: true,
+			status: 200,
+			json: async () => ({ discord_id: '1', discord_username: 'Admin', is_admin: true }),
+		});
+		mockFetch.mockResolvedValueOnce({
+			ok: true,
+			json: async () => ({ signup_open: signupOpen, discord_client_id: 'cid' }),
+		});
+	}
+
+	it('offers to show the button while sign-ups are closed', async () => {
+		adminSession(false);
+		const { findByTestId } = render(Page);
+		expect((await findByTestId('toggle-signup')).textContent).toMatch(/show sign-up button/i);
+	});
+
+	it('offers to hide the button once sign-ups are open', async () => {
+		adminSession(true);
+		const { findByTestId } = render(Page);
+		expect((await findByTestId('toggle-signup')).textContent).toMatch(/hide sign-up button/i);
+	});
+
+	it('opens sign-ups and reflects what the server returns', async () => {
+		adminSession(false);
+		const { findByTestId } = render(Page);
+		const btn = await findByTestId('toggle-signup');
+
+		mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ signup_open: true }) });
+		await fireEvent.click(btn);
+
+		const [url, init] = mockFetch.mock.calls[mockFetch.mock.calls.length - 1];
+		expect(url).toBe('/api/settings');
+		expect(init.method).toBe('POST');
+		expect(JSON.parse(init.body)).toEqual({ signup_open: true });
+		await waitFor(() => expect(btn.textContent).toMatch(/hide sign-up button/i));
+	});
+});
+

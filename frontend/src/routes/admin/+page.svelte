@@ -7,6 +7,8 @@
 	let username = $state<string | null>(null);
 	let authed = $state(false);
 	let durationMinutes = $state(100);
+	let signupOpen = $state(false);
+	let signupSaving = $state(false);
 	let allowInternalClipboard = $state(true);
 	let starting = $state(false);
 
@@ -25,7 +27,29 @@
 		}
 		username = data.discord_username;
 		authed = true;
+
+		try {
+			const cfg = await fetch('/api/config');
+			if (cfg.ok) signupOpen = (await cfg.json()).signup_open === true;
+		} catch {
+			// leave the switch showing "hidden" until a toggle succeeds
+		}
 	});
+
+	async function toggleSignup() {
+		signupSaving = true;
+		try {
+			const resp = await fetch('/api/settings', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ signup_open: !signupOpen })
+			});
+			if (resp.ok) signupOpen = (await resp.json()).signup_open === true;
+		} catch {
+			// network error; the switch keeps its last known state
+		}
+		signupSaving = false;
+	}
 
 	function handleStart() {
 		starting = true;
@@ -138,6 +162,26 @@
 					</div>
 				</section>
 			{/if}
+
+			<section class="w-full max-w-sm rounded-xl border border-white/10 bg-white/5 p-6">
+				<h2 class="mb-1 text-base font-semibold">Landing page sign-up</h2>
+				<p class="mb-4 text-sm text-gray-400">
+					{signupOpen
+						? 'Visitors see the sign-up button and can log in.'
+						: 'The sign-up button is hidden. Turn it on when the event starts.'}
+				</p>
+				<button
+					type="button"
+					data-testid="toggle-signup"
+					disabled={signupSaving}
+					onclick={toggleSignup}
+					class="w-full rounded-lg px-4 py-2 text-sm font-semibold text-white disabled:opacity-40 {signupOpen
+						? 'border border-white/20 hover:bg-white/10'
+						: 'bg-hacksu-green hover:opacity-90'}"
+				>
+					{signupOpen ? 'Hide sign-up button' : 'Show sign-up button'}
+				</button>
+			</section>
 
 		</main>
 	</div>
