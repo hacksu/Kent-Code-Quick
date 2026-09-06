@@ -9,7 +9,7 @@ from flask import Flask, jsonify, redirect, request, send_from_directory, sessio
 import requests as http_requests
 from extensions import socketio
 import game_manager
-from game_manager import create_game, end_game
+from game_manager import DEFAULT_DURATION_MS, create_game
 
 import ws_handler  # noqa: F401
 
@@ -22,7 +22,20 @@ if not SESSION_SECRET:
     raise RuntimeError("SESSION_SECRET environment variable must be set")
 app.secret_key = SESSION_SECRET
 
-socketio.init_app(app, async_mode="gevent", cors_allowed_origins="*")
+IS_DEV = os.environ.get("NODE_ENV") == "development"
+
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SECURE=os.environ.get("COOKIE_SECURE", "0") == "1",
+)
+
+_origins = [o.strip() for o in os.environ.get("ALLOWED_ORIGINS", "").split(",") if o.strip()]
+socketio.init_app(
+    app,
+    async_mode="gevent",
+    cors_allowed_origins=_origins or None,
+)
 
 @app.after_request
 def no_cache_api(response):
@@ -44,7 +57,30 @@ DOCS_ALLOWLIST = {"developer.mozilla.org", "www.w3schools.com"}
 def get_config():
     host = request.host.rsplit(":", 1)[0]
     url = os.environ.get("DEVDOCS_URL") or f"http://{host}:9292"
-    return jsonify({"devdocs_url": url.rstrip("/")})
+    return jsonify({
+        "devdocs_url": url.rstrip("/"),
+        # Served rather than hardcoded in the bundle so the id the browser
+        # sends to Discord can never drift from the secret the server uses.
+        "discord_client_id": DISCORD_CLIENT_ID,
+        "signup_open": game_manager.get_settings()["signup_open"],
+    })
+
+
+@app.route("/api/settings", methods=["GET"])
+def get_settings_route():
+    if not session.get("is_admin"):
+        return jsonify({"error": "forbidden"}), 403
+    return jsonify(game_manager.get_settings())
+
+
+@app.route("/api/settings", methods=["POST"])
+def update_settings_route():
+    if not session.get("is_admin"):
+        return jsonify({"error": "forbidden"}), 403
+    data = request.get_json(silent=True) or {}
+    if "signup_open" not in data:
+        return jsonify({"error": "missing signup_open"}), 400
+    return jsonify(game_manager.set_signup_open(data["signup_open"]))
 
 
 # --- Auth ---
@@ -52,7 +88,7 @@ def get_config():
 @app.route("/api/auth/dev-login")
 def dev_login():
     # Dev-only escape hatch. Fail closed: only available when NODE_ENV is set.
-    if os.environ.get("NODE_ENV") != "development":
+    if not IS_DEV:
         return jsonify({"error": "forbidden"}), 403
     name = request.args.get("name", "TestPlayer")
     is_admin = request.args.get("admin", "0") == "1"
@@ -133,7 +169,7 @@ def auth_logout():
 def get_game():
     g = game_manager.game
     if g is None:
-        return jsonify({"status": "waiting", "lobby_count": 0, "duration_ms": 45 * 60 * 1000})
+        return jsonify({"status": "waiting", "lobby_count": 0, "duration_ms": DEFAULT_DURATION_MS})
     return jsonify({"status": g.status, "lobby_count": len(g.lobby), "duration_ms": g.duration_ms})
 
 
@@ -142,7 +178,7 @@ def create_game_route():
     if not session.get("is_admin"):
         return jsonify({"error": "forbidden"}), 403
     data = request.get_json() or {}
-    duration_ms = data.get("duration_ms", 45 * 60 * 1000)
+    duration_ms = data.get("duration_ms", DEFAULT_DURATION_MS)
     g = create_game(duration_ms=duration_ms)
     return jsonify(g.to_dict()), 201
 
@@ -221,4 +257,12 @@ def serve_spa(path: str):
 
 
 if __name__ == "__main__":
+    game_manager.load_settings()
+    restored = game_manager.load_state_snapshot()
+    if restored is not None:
+        print(
+            f"[recovery] restored {restored.status} game with "
+            f"{len(restored.participants)} participant(s), {len(restored.lobby)} in lobby"
+        )
+        ws_handler.resume_timer_if_active()
     socketio.run(app, host="0.0.0.0", port=5001)

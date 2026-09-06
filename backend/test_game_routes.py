@@ -5,6 +5,7 @@ monkey.patch_all()
 import pytest
 from app import app
 import game_manager
+from game_manager import DEFAULT_DURATION_MS
 from game_manager import create_game, add_to_lobby, start_game
 
 
@@ -57,7 +58,7 @@ def test_create_game_creates_waiting_game(client):
 def test_create_game_uses_default_duration(client):
     set_admin_session(client)
     resp = client.post("/api/game", json={})
-    assert resp.get_json()["duration_ms"] == 45 * 60 * 1000
+    assert resp.get_json()["duration_ms"] == DEFAULT_DURATION_MS
 
 
 def test_get_game_results_requires_admin(client):

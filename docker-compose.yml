@@ -11,9 +11,11 @@ services:
       DISCORD_GUILD_ID: ${DISCORD_GUILD_ID}
       NODE_ENV: ${NODE_ENV}
       DEVDOCS_URL: ${DEVDOCS_URL:-}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
+      COOKIE_SECURE: ${COOKIE_SECURE:-0}
     volumes:
-      # Persist each event's built participant documents to the host on event end.
       - ./results:/app/results
+    restart: unless-stopped
     depends_on:
       - devdocs
 
@@ -21,3 +23,6 @@ services:
     build:
       context: .
       dockerfile: devdocs.Dockerfile
+    ports:
+      - "9292:9292"
+    restart: unless-stopped

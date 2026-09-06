@@ -40,18 +40,89 @@ describe('Home page - auth redirect', () => {
 
 describe('Home page - login', () => {
 	beforeEach(() => {
+		// 1) /api/auth/me -> not logged in, 2) /api/config -> OAuth client id
 		mockFetch.mockResolvedValueOnce({ ok: false, status: 401, json: async () => ({}) });
+		mockFetch.mockResolvedValueOnce({
+			ok: true,
+			json: async () => ({
+				discord_client_id: 'client-id-from-server',
+				devdocs_url: 'http://localhost:9292',
+				signup_open: true,
+			}),
+		});
 	});
 
 	it('shows a Login with Discord button when not authenticated', async () => {
 		const { container } = render(Page);
-		await waitFor(() => expect(container.textContent).toMatch(/login with discord/i));
+		await waitFor(() => expect(container.textContent).toMatch(/sign up with discord/i));
 	});
 
 	it('sends the user to Discord OAuth when login is clicked', async () => {
 		const { getByRole } = render(Page);
-		const btn = await waitFor(() => getByRole('button', { name: /login with discord/i }));
+		const btn = await waitFor(() => getByRole('button', { name: /sign up with discord/i }));
 		await fireEvent.click(btn);
 		expect(locationMock.href).toMatch(/^https:\/\/discord\.com\/oauth2\/authorize/);
+	});
+
+	it('uses the client id served by the backend rather than a hardcoded one', async () => {
+		const { getByRole } = render(Page);
+		const btn = await waitFor(() => getByRole('button', { name: /sign up with discord/i }));
+		await fireEvent.click(btn);
+		expect(locationMock.href).toContain('client_id=client-id-from-server');
+	});
+
+	it('sends a state parameter and remembers it for the callback to verify', async () => {
+		const { getByRole } = render(Page);
+		const btn = await waitFor(() => getByRole('button', { name: /sign up with discord/i }));
+		await fireEvent.click(btn);
+		const state = new URL(locationMock.href).searchParams.get('state');
+		expect(state).toBeTruthy();
+		expect(sessionStorage.getItem('oauthState')).toBe(state);
+	});
+});
+
+describe('Home page - misconfigured server', () => {
+	it('disables login and explains when no client id is configured', async () => {
+		mockFetch.mockResolvedValueOnce({ ok: false, status: 401, json: async () => ({}) });
+		mockFetch.mockResolvedValueOnce({
+			ok: true,
+			json: async () => ({ discord_client_id: '', signup_open: true }),
+		});
+		const { getByRole, getByTestId } = render(Page);
+		const btn = await waitFor(() => getByRole('button', { name: /sign up with discord/i }));
+		expect((btn as HTMLButtonElement).disabled).toBe(true);
+		expect(getByTestId('config-error').textContent).toMatch(/no discord client id/i);
+		await fireEvent.click(btn);
+		expect(locationMock.href).toBe('');
+	});
+});
+
+describe('Home page - sign-ups not open yet', () => {
+	function closedSignups(config: Record<string, unknown>) {
+		mockFetch.mockResolvedValueOnce({ ok: false, status: 401, json: async () => ({}) });
+		mockFetch.mockResolvedValueOnce({ ok: true, json: async () => config });
+	}
+
+	it('points people at the Discord instead of the sign-up button', async () => {
+		closedSignups({ discord_client_id: 'client-id-from-server', signup_open: false });
+		const { queryByRole, findByTestId } = render(Page);
+		const cta = await findByTestId('discord-cta');
+		expect(cta.textContent).toMatch(/join the discord for more updates/i);
+		expect(cta.getAttribute('href')).toBe('https://discord.gg/hrRfNQBz5z');
+		expect(queryByRole('button', { name: /sign up with discord/i })).toBeNull();
+	});
+
+	it('treats a missing signup_open as closed', async () => {
+		closedSignups({ discord_client_id: 'client-id-from-server' });
+		const { queryByRole, findByTestId } = render(Page);
+		await findByTestId('discord-cta');
+		expect(queryByRole('button', { name: /sign up with discord/i })).toBeNull();
+	});
+
+	it('drops the Discord link once sign-ups open', async () => {
+		closedSignups({ discord_client_id: 'client-id-from-server', signup_open: true });
+		const { queryByTestId, findByRole } = render(Page);
+		await findByRole('button', { name: /sign up with discord/i });
+		expect(queryByTestId('discord-cta')).toBeNull();
 	});
 });
