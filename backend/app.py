@@ -50,17 +50,30 @@ DISCORD_GUILD_ID = os.environ.get("DISCORD_GUILD_ID", "")
 
 DOCS_ALLOWLIST = {"developer.mozilla.org", "www.w3schools.com"}
 
+DEVDOCS_UPSTREAM = os.environ.get("DEVDOCS_UPSTREAM", "http://devdocs:9292").rstrip("/")
+DEVDOCS_DEFAULT_PATH = "/html"
+
+DEVDOCS_PREFIXES = ("assets", "docs", "images", "html", "css", "javascript", "dom")
+DEVDOCS_FILES = ("manifest.json", "opensearch.xml")
+
+_DEVDOCS_SKIP_HEADERS = {
+    "content-encoding",
+    "content-length",
+    "transfer-encoding",
+    "connection",
+    "keep-alive",
+    "x-frame-options",
+    "content-security-policy",
+}
+
 
 # --- Config ---
 
 @app.route("/api/config")
 def get_config():
-    host = request.host.rsplit(":", 1)[0]
-    url = os.environ.get("DEVDOCS_URL") or f"http://{host}:9292"
+    url = os.environ.get("DEVDOCS_URL") or DEVDOCS_DEFAULT_PATH
     return jsonify({
         "devdocs_url": url.rstrip("/"),
-        # Served rather than hardcoded in the bundle so the id the browser
-        # sends to Discord can never drift from the secret the server uses.
         "discord_client_id": DISCORD_CLIENT_ID,
         "signup_open": game_manager.get_settings()["signup_open"],
     })
@@ -243,6 +256,44 @@ def docs_proxy():
     response.headers.pop("X-Frame-Options", None)
     response.headers.pop("Content-Security-Policy", None)
     return response
+
+
+# --- DevDocs proxy ---
+
+def devdocs_proxy(**_kwargs):
+    """Stream a DevDocs response through this origin.
+
+    `request.path` already matches DevDocs' own URL space, so it is passed
+    through untouched -- the docs UI keeps working with its absolute /assets
+    and /docs links and its root-based client router.
+    """
+    try:
+        upstream = http_requests.get(
+            f"{DEVDOCS_UPSTREAM}{request.path}",
+            params=request.args,
+            stream=True,
+            timeout=30,
+        )
+    except http_requests.RequestException:
+        return jsonify({"error": "documentation is unavailable"}), 502
+
+    headers = [
+        (name, value)
+        for name, value in upstream.raw.headers.items()
+        if name.lower() not in _DEVDOCS_SKIP_HEADERS
+    ]
+    return Response(
+        upstream.iter_content(chunk_size=64 * 1024),
+        status=upstream.status_code,
+        headers=headers,
+    )
+
+
+for _prefix in DEVDOCS_PREFIXES:
+    app.add_url_rule(f"/{_prefix}/", f"devdocs_{_prefix}", devdocs_proxy)
+    app.add_url_rule(f"/{_prefix}/<path:path>", f"devdocs_{_prefix}_sub", devdocs_proxy)
+for _name in DEVDOCS_FILES:
+    app.add_url_rule(f"/{_name}", f"devdocs_file_{_name.replace('.', '_')}", devdocs_proxy)
 
 
 # --- SPA fallback ---

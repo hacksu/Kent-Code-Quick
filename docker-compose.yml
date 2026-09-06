@@ -23,6 +23,4 @@ services:
     build:
       context: .
       dockerfile: devdocs.Dockerfile
-    ports:
-      - "9292:9292"
     restart: unless-stopped
