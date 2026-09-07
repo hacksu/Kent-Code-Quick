@@ -17,12 +17,12 @@ def client():
 
 
 def fake_upstream(body=b"<html>docs</html>", status=200, headers=None):
-    resp = SimpleNamespace(
+    return SimpleNamespace(
         status_code=status,
         raw=SimpleNamespace(headers=headers or {"Content-Type": "text/html"}),
         iter_content=lambda chunk_size=1: iter([body]),
+        text=body.decode(),
     )
-    return resp
 
 
 @pytest.mark.parametrize("path", [f"/{p}/" for p in DEVDOCS_PREFIXES])
@@ -96,7 +96,23 @@ def test_api_routes_are_not_proxied(client):
     assert resp.status_code == 200
 
 
-def test_config_points_at_our_own_origin_by_default(client):
+def test_docs_panel_opens_on_the_full_devdocs_root(client):
+    """Every docset, not just one -- /html/ would boot single-doc mode."""
+    with patch("app.http_requests.get", return_value=fake_upstream()) as get:
+        client.get("/devdocs/")
+    assert get.call_args[0][0] == "http://devdocs:9292/"
+
+
+def test_root_path_is_normalised_for_the_devdocs_router(client):
+    body = b"<html><head><title>DevDocs</title></head><body></body></html>"
+    resp_stub = SimpleNamespace(status_code=200, text=body.decode(), raw=SimpleNamespace(headers={}))
+    with patch("app.http_requests.get", return_value=resp_stub):
+        resp = client.get("/devdocs/")
+    assert b"history.replaceState(null, '', '/');" in resp.data
+    assert resp.data.index(b"replaceState") < resp.data.index(b"</head>")
+
+
+def test_config_sends_the_panel_to_the_devdocs_root(client):
     with patch.dict("os.environ", {"DEVDOCS_URL": ""}):
         resp = client.get("/api/config")
-    assert resp.get_json()["devdocs_url"] == "/html"
+    assert resp.get_json()["devdocs_url"] == "/devdocs"
