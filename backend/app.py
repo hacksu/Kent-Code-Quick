@@ -51,7 +51,7 @@ DISCORD_GUILD_ID = os.environ.get("DISCORD_GUILD_ID", "")
 DOCS_ALLOWLIST = {"developer.mozilla.org", "www.w3schools.com"}
 
 DEVDOCS_UPSTREAM = os.environ.get("DEVDOCS_UPSTREAM", "http://devdocs:9292").rstrip("/")
-DEVDOCS_DEFAULT_PATH = "/html"
+DEVDOCS_DEFAULT_PATH = "/devdocs"
 
 DEVDOCS_PREFIXES = ("assets", "docs", "images", "html", "css", "javascript", "dom")
 DEVDOCS_FILES = ("manifest.json", "opensearch.xml")
@@ -287,6 +287,21 @@ def devdocs_proxy(**_kwargs):
         status=upstream.status_code,
         headers=headers,
     )
+
+
+@app.route("/devdocs")
+@app.route("/devdocs/")
+def devdocs_root():
+    try:
+        upstream = http_requests.get(f"{DEVDOCS_UPSTREAM}/", timeout=30)
+    except http_requests.RequestException:
+        return jsonify({"error": "documentation is unavailable"}), 502
+    html = upstream.text.replace(
+        "</head>",
+        "<script>history.replaceState(null, '', '/');</script></head>",
+        1,
+    )
+    return Response(html, status=upstream.status_code, content_type="text/html; charset=utf-8")
 
 
 for _prefix in DEVDOCS_PREFIXES:
