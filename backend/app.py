@@ -156,7 +156,11 @@ def auth_exchange():
     session["discord_username"] = user["username"]
     session["is_admin"] = is_admin
 
-    return jsonify({"is_admin": is_admin, "discord_username": user["username"]})
+    return jsonify({
+        "is_admin": is_admin,
+        "discord_username": user["username"],
+        "signup_open": game_manager.get_settings()["signup_open"],
+    })
 
 
 @app.route("/api/auth/me")
@@ -167,6 +171,7 @@ def auth_me():
         "discord_id": session["discord_id"],
         "discord_username": session["discord_username"],
         "is_admin": session.get("is_admin", False),
+        "signup_open": game_manager.get_settings()["signup_open"],
     })
 
 
@@ -204,6 +209,31 @@ def game_results():
     if g is None:
         return jsonify({"error": "no game"}), 404
     return jsonify(g.to_dict())
+
+
+@app.route("/api/game/export", methods=["GET"])
+def export_projects():
+    if not session.get("is_admin"):
+        return jsonify({"error": "forbidden"}), 403
+    g = game_manager.game
+    if g is None:
+        return jsonify({"error": "no game"}), 404
+    scope = request.args.get("scope", game_manager.EXPORT_SCOPE_FINISHED)
+    if scope not in game_manager.EXPORT_SCOPES:
+        return jsonify({"error": "invalid scope"}), 400
+
+    payload, filename, count = game_manager.build_export_archive(g, scope)
+    if count == 0:
+        return jsonify({"error": "no projects to export"}), 404
+
+    return Response(
+        payload,
+        mimetype="application/zip",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Content-Length": str(len(payload)),
+        },
+    )
 
 
 # --- Docs proxy ---

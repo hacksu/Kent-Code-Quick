@@ -30,7 +30,12 @@ function okAuth(username = 'Alice') {
 	mockFetch.mockResolvedValue({
 		ok: true,
 		status: 200,
-		json: async () => ({ discord_id: '1', discord_username: username, is_admin: false }),
+		json: async () => ({
+			discord_id: '1',
+			discord_username: username,
+			is_admin: false,
+			signup_open: true,
+		}),
 	});
 }
 
@@ -99,5 +104,47 @@ describe('Lobby page', () => {
 		fireSocketEvent('lobby_update', { lobby_count: 5 });
 		flushSync();
 		expect(container.textContent).toContain('5');
+	});
+});
+
+describe('Lobby page - closed sign-ups', () => {
+	it('sends a player back to the landing page before sign-ups open', async () => {
+		mockFetch.mockResolvedValue({
+			ok: true,
+			status: 200,
+			json: async () => ({
+				discord_id: '1',
+				discord_username: 'Alice',
+				is_admin: false,
+				signup_open: false,
+			}),
+		});
+		render(Page);
+		await waitFor(() => expect(locationMock.href).toBe('/'));
+		expect(mockSocket.connect).not.toHaveBeenCalled();
+	});
+
+	it('lets an admin through so they can test the lobby', async () => {
+		mockFetch.mockResolvedValue({
+			ok: true,
+			status: 200,
+			json: async () => ({
+				discord_id: '1',
+				discord_username: 'Admin',
+				is_admin: true,
+				signup_open: false,
+			}),
+		});
+		render(Page);
+		await waitFor(() => expect(mockSocket.connect).toHaveBeenCalled());
+		expect(locationMock.href).toBe('');
+	});
+
+	it('leaves if the server closes sign-ups while waiting', async () => {
+		okAuth();
+		render(Page);
+		await waitFor(() => expect(mockSocket.connect).toHaveBeenCalled());
+		fireSocketEvent('signup_closed');
+		expect(locationMock.href).toBe('/');
 	});
 });

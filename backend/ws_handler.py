@@ -66,6 +66,13 @@ def handle_join_lobby(data: dict) -> None:
         emit("auth_required")
         return
 
+    # While sign-ups are closed the lobby is admin-only. The clients already
+    # route non-admins back to the landing page; this is the part that holds
+    # when someone navigates straight to /lobby.
+    if not game_manager.get_settings()["signup_open"] and not session.get("is_admin"):
+        emit("signup_closed")
+        return
+
     g = get_or_create_game()
     if g.status != "waiting":
         emit("game_locked")

@@ -21,6 +21,17 @@ def reset_game():
     game_manager.game = None
 
 
+@pytest.fixture(autouse=True)
+def signups_open():
+    """Most of these tests are about lobby mechanics, not the sign-up gate.
+
+    The gate is admin-only while sign-ups are closed, so open them by default
+    and let the gate's own tests close them again.
+    """
+    with patch.dict(game_manager.settings, {"signup_open": True}):
+        yield
+
+
 def admin_ws_client():
     """Return a WS client with an active admin session."""
     app.secret_key = "test-session-secret"
@@ -431,3 +442,50 @@ def test_resume_timer_only_spawns_for_an_active_game(tmp_path, monkeypatch):
         end_game_state.status = "ended"
         ws_handler.resume_timer_if_active()
         assert mock_spawn.call_count == 1
+
+
+# --- sign-up gate ---
+#
+# Sign-ups closed means the event is not open to players yet. The clients
+# route non-admins back to the landing page; these lock in the server half,
+# which is what holds when someone goes straight to /lobby.
+
+def test_join_lobby_is_refused_while_signups_are_closed():
+    with patch.dict(game_manager.settings, {"signup_open": False}):
+        ws = player_ws_client("Alice")
+        ws.emit("join_lobby", {})
+        received = ws.get_received()
+    assert [m["name"] for m in received] == ["signup_closed"]
+    assert game_manager.game is None or not game_manager.game.lobby
+
+
+def test_join_lobby_admits_an_admin_while_signups_are_closed():
+    with patch.dict(game_manager.settings, {"signup_open": False}):
+        ws = admin_ws_client()
+        ws.emit("join_lobby", {})
+        received = ws.get_received()
+    assert "signup_closed" not in [m["name"] for m in received]
+    assert [e.name for e in game_manager.game.lobby.values()] == ["AdminUser"]
+
+
+def test_join_lobby_admits_players_once_signups_open():
+    with patch.dict(game_manager.settings, {"signup_open": True}):
+        ws = player_ws_client("Alice")
+        ws.emit("join_lobby", {})
+        received = ws.get_received()
+    assert "signup_closed" not in [m["name"] for m in received]
+    assert [e.name for e in game_manager.game.lobby.values()] == ["Alice"]
+
+
+def test_closing_signups_does_not_evict_an_active_participant():
+    """A player already in a running game keeps playing."""
+    g = create_game()
+    add_to_lobby(g, None, "Alice", "sid-alice", "discord-Alice")
+    start_game(g)
+    with patch.dict(game_manager.settings, {"signup_open": False}):
+        ws = player_ws_client("Alice")
+        ws.emit("join_game", {})
+        received = ws.get_received()
+    names = [m["name"] for m in received]
+    assert "game_state" in names
+    assert "signup_closed" not in names
