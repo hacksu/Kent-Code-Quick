@@ -13,6 +13,7 @@
 	let starting = $state(false);
 	let exporting = $state<'finished' | 'all' | null>(null);
 	let exportError = $state<string | null>(null);
+	let timerFullscreen = $state(false);
 
 	const store = createWatchStore();
 
@@ -95,6 +96,24 @@
 		starting = false;
 	}
 
+	function toggleTimerFullscreen() {
+		if (!document.fullscreenElement) {
+			document.documentElement.requestFullscreen().catch(() => {
+				// fullscreen unsupported/denied; overlay simply won't show
+			});
+		} else {
+			document.exitFullscreen();
+		}
+	}
+
+	onMount(() => {
+		function onFullscreenChange() {
+			timerFullscreen = document.fullscreenElement !== null;
+		}
+		document.addEventListener('fullscreenchange', onFullscreenChange);
+		return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
+	});
+
 	const labelClass = 'text-sm font-medium text-gray-300';
 	const inputClass = 'w-20 rounded border border-white/20 bg-white/10 px-2 py-1 text-sm text-white';
 </script>
@@ -162,8 +181,16 @@
 			{:else if store.gameStatus === 'active'}
 				<section class="w-full max-w-sm rounded-xl border border-white/10 bg-white/5 p-6">
 					<h2 class="mb-2 text-base font-semibold">Game in Progress</h2>
-					<div class="mb-4">
+					<div class="mb-4 flex items-center gap-3">
 						<Timer elapsed={store.elapsed} durationMs={store.durationMs} />
+						<button
+							type="button"
+							data-testid="timer-fullscreen-btn"
+							onclick={toggleTimerFullscreen}
+							class="rounded border border-white/20 px-2 py-1 text-xs text-gray-300 hover:bg-white/10"
+						>
+							Fullscreen
+						</button>
 					</div>
 					<p class="mb-1 text-sm text-gray-400">{participantCount} participants</p>
 					<p class="mb-4 text-xs text-gray-500">
@@ -260,4 +287,22 @@
 
 		</main>
 	</div>
+
+	{#if timerFullscreen}
+		<div
+			data-testid="timer-fullscreen-overlay"
+			class="fixed inset-0 z-50 flex flex-col items-center justify-center gap-8 bg-hacksu-grey"
+		>
+			<div class="text-[min(24vw,24vh)] font-bold leading-none">
+				<Timer elapsed={store.elapsed} durationMs={store.durationMs} />
+			</div>
+			<button
+				type="button"
+				onclick={toggleTimerFullscreen}
+				class="text-sm text-gray-400 hover:text-white"
+			>
+				Exit Fullscreen (Esc)
+			</button>
+		</div>
+	{/if}
 {/if}
