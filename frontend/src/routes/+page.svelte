@@ -5,6 +5,8 @@
 	import ParticleBackground from '$lib/components/ParticleBackground.svelte';
 	import Footer from '$lib/components/Footer.svelte';
 	import { DISCORD_INVITE } from '$lib/links';
+	import { startDiscordLogin } from '$lib/discord-auth';
+	import { destinationFor } from '$lib/auth-gate';
 
 	const EVENT_DATE = 'September 24th';
 	const EVENT_TIME = '6:00-9:00pm';
@@ -14,21 +16,25 @@
 	let clientId = $state('');
 	let configError = $state(false);
 	let signupOpen = $state(false);
+	let waiting = $state(false);
 
 	onMount(async () => {
 		try {
 			const resp = await fetch('/api/auth/me');
 			if (resp.ok) {
 				const data = await resp.json();
-				window.location.replace(data.is_admin ? '/admin' : '/lobby');
-				return;
+				const destination = destinationFor(data);
+				if (destination !== '/') {
+					window.location.replace(destination);
+					return;
+				}
+				// Signed in, but sign-ups are still closed -- keep them here.
+				waiting = true;
 			}
 		} catch {
 			// network error, fall through
 		}
 
-		// The OAuth client id comes from the server so it can never drift from
-		// the client secret the server exchanges the code with.
 		try {
 			const cfg = await fetch('/api/config');
 			if (cfg.ok) {
@@ -42,37 +48,6 @@
 		configError = clientId === '';
 		checking = false;
 	});
-
-	// crypto.randomUUID is only defined in secure contexts, and the event is
-	// often served over plain HTTP on a local network -- fall back to
-	// getRandomValues, which is not gated, and then to Math.random.
-	function randomState(): string {
-		if (typeof crypto !== 'undefined') {
-			if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
-			if (typeof crypto.getRandomValues === 'function') {
-				const bytes = crypto.getRandomValues(new Uint8Array(16));
-				return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
-			}
-		}
-		return `${Date.now().toString(16)}${Math.random().toString(16).slice(2)}`;
-	}
-
-	function login() {
-		if (!clientId) return;
-		const redirectUri = `${window.location.origin}/auth/callback`;
-		// CSRF protection: the callback only exchanges a code that comes back
-		// with the state value we generated for this browser.
-		const state = randomState();
-		sessionStorage.setItem('oauthState', state);
-		const params = new URLSearchParams({
-			client_id: clientId,
-			redirect_uri: redirectUri,
-			response_type: 'code',
-			scope: 'identify guilds.members.read',
-			state
-		});
-		window.location.href = `https://discord.com/oauth2/authorize?${params}`;
-	}
 
 	const specLabel = 'font-display text-[0.7rem] font-semibold tracking-[0.16em] text-gray-500 uppercase';
 	const specCell = 'grid justify-items-center gap-0.5 px-4 py-3.5';
@@ -139,7 +114,7 @@
 			</div>
 
 			{#if signupOpen}
-				<button type="button" onclick={login} disabled={configError} class={ctaClass}>
+				<button type="button" onclick={() => startDiscordLogin(clientId)} disabled={configError} class={ctaClass}>
 					<img src={discordIcon} alt="" class="h-5 w-5" />
 					Sign up with Discord
 				</button>
@@ -159,6 +134,10 @@
 			{#if signupOpen && configError}
 				<p class="text-sm text-red-400" data-testid="config-error">
 					Sign-up is unavailable: the server has no Discord client ID configured.
+				</p>
+			{:else if waiting}
+				<p class={noteClass} data-testid="waiting-note">
+					You're signed in &middot; Sign-ups open at the event
 				</p>
 			{:else}
 				<p class={noteClass}>No experience required &middot; Bring a laptop</p>

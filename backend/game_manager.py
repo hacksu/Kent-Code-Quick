@@ -1,14 +1,17 @@
 from __future__ import annotations
 
+import io
 import json
 import os
 import re
 import secrets
 import time
 import uuid
-from datetime import datetime
+import zipfile
+from datetime import datetime, timezone
 from dataclasses import asdict, dataclass, field
-from typing import Optional, Tuple
+from html import escape as html_escape
+from typing import List, Optional, Tuple
 
 DEFAULT_DURATION_MS = 100 * 60 * 1000
 
@@ -237,6 +240,143 @@ def _build_document(name: str, html: str, css: str, js: str) -> str:
     )
 
 
+EXPORT_SCOPE_FINISHED = "finished"
+EXPORT_SCOPE_ALL = "all"
+EXPORT_SCOPES = (EXPORT_SCOPE_FINISHED, EXPORT_SCOPE_ALL)
+
+
+def is_finished(p: Participant) -> bool:
+    """A project counts as finished once it has been snapshotted.
+
+    Snapshots happen when a participant submits, and for everyone still
+    working when the admin ends the event -- so after an event every
+    project is finished.
+    """
+    return p.submitted_at is not None
+
+
+def final_code(p: Participant) -> Tuple[str, str, str]:
+    """The snapshotted code if there is one, else what is in the editor now."""
+    return (
+        p.final_html if p.final_html is not None else p.html,
+        p.final_css if p.final_css is not None else p.css,
+        p.final_js if p.final_js is not None else p.js,
+    )
+
+
+def export_entries(g: GameState, scope: str = EXPORT_SCOPE_FINISHED) -> List[Tuple[str, Participant]]:
+    """(token, participant) pairs to export, ordered by display name."""
+    entries = sorted(g.participants.items(), key=lambda kv: (kv[1].name.lower(), kv[0]))
+    if scope == EXPORT_SCOPE_ALL:
+        return entries
+    return [(token, p) for token, p in entries if is_finished(p)]
+
+
+def _iso(ts: Optional[float]) -> Optional[str]:
+    if ts is None:
+        return None
+    return datetime.fromtimestamp(ts, timezone.utc).isoformat()
+
+
+def _local_time(ts: Optional[float]) -> str:
+    if ts is None:
+        return "--"
+    return datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S")
+
+
+def _export_project_filename(token: str, p: Participant) -> str:
+    return f"{_safe_filename(p.name)}-{token}.html"
+
+
+def _export_manifest(g: GameState, entries: List[Tuple[str, Participant]], scope: str) -> dict:
+    return {
+        "exported_at": _iso(time.time()),
+        "scope": scope,
+        "status": g.status,
+        "duration_ms": g.duration_ms,
+        "started_at": _iso(g.started_at),
+        "ended_at": _iso(g.ended_at),
+        "participant_count": len(g.participants),
+        "exported_count": len(entries),
+        "projects": [
+            {
+                "token": token,
+                "id": p.id,
+                "name": p.name,
+                "discord_id": p.discord_id,
+                "file": f"projects/{_export_project_filename(token, p)}",
+                "finished": is_finished(p),
+                "submitted_at": _iso(p.submitted_at),
+                "tab_out_count": p.tab_out_count,
+                "copy_attempt_count": p.copy_attempt_count,
+            }
+            for token, p in entries
+        ],
+    }
+
+
+def _export_index(g: GameState, entries: List[Tuple[str, Participant]], scope: str) -> str:
+    """A tiny contact sheet so the zip can be browsed without a server."""
+    rows = "\n".join(
+        "<tr>"
+        f'<td><a href="projects/{html_escape(_export_project_filename(token, p))}">{html_escape(p.name)}</a></td>'
+        f"<td>{'yes' if is_finished(p) else 'no'}</td>"
+        f"<td>{html_escape(_local_time(p.submitted_at))}</td>"
+        f"<td>{p.tab_out_count}</td>"
+        f"<td>{p.copy_attempt_count}</td>"
+        "</tr>"
+        for token, p in entries
+    )
+    return (
+        "<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"utf-8\">\n"
+        "<title>Kent Code Quick -- projects</title>\n"
+        "<style>"
+        "body{font:14px/1.5 system-ui,sans-serif;margin:2rem;color:#222}"
+        "table{border-collapse:collapse}"
+        "th,td{border-bottom:1px solid #ddd;padding:.4rem .8rem;text-align:left}"
+        "th{font-size:12px;text-transform:uppercase;color:#666}"
+        "</style>\n</head>\n<body>\n"
+        "<h1>Kent Code Quick</h1>\n"
+        f"<p>{len(entries)} project(s), scope <strong>{html_escape(scope)}</strong>. "
+        f"Event {html_escape(g.status)}; started {html_escape(_local_time(g.started_at))}, "
+        f"ended {html_escape(_local_time(g.ended_at))}.</p>\n"
+        "<table>\n<thead><tr><th>Name</th><th>Finished</th><th>Submitted</th>"
+        "<th>Tab-outs</th><th>Copy attempts</th></tr></thead>\n"
+        f"<tbody>\n{rows}\n</tbody>\n</table>\n"
+        "</body>\n</html>\n"
+    )
+
+
+def build_export_archive(
+    g: GameState, scope: str = EXPORT_SCOPE_FINISHED
+) -> Tuple[bytes, str, int]:
+    """Zip every in-scope project into one downloadable archive.
+
+    Returns the zip bytes, a suggested filename, and how many projects
+    went in (zero means there was nothing to export).
+    """
+    if scope not in EXPORT_SCOPES:
+        raise ValueError(f"unknown export scope: {scope}")
+    entries = export_entries(g, scope)
+    stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    root = f"kcq-projects-{stamp}"
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as archive:
+        for token, p in entries:
+            html_src, css, js = final_code(p)
+            archive.writestr(
+                f"{root}/projects/{_export_project_filename(token, p)}",
+                _build_document(p.name, html_src, css, js),
+            )
+        archive.writestr(f"{root}/index.html", _export_index(g, entries, scope))
+        archive.writestr(
+            f"{root}/manifest.json",
+            json.dumps(_export_manifest(g, entries, scope), indent=2),
+        )
+    return buf.getvalue(), f"{root}.zip", len(entries)
+
+
 def save_results(g: GameState) -> Optional[str]:
     if not g.participants:
         return None
@@ -244,11 +384,9 @@ def save_results(g: GameState) -> Optional[str]:
     out_dir = os.path.join(results_dir, f"event-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
     os.makedirs(out_dir, exist_ok=True)
     for token, p in g.participants.items():
-        html = p.final_html if p.final_html is not None else p.html
-        css = p.final_css if p.final_css is not None else p.css
-        js = p.final_js if p.final_js is not None else p.js
+        html, css, js = final_code(p)
         doc = _build_document(p.name, html, css, js)
-        fname = f"{_safe_filename(p.name)}-{token}.html"
+        fname = _export_project_filename(token, p)
         with open(os.path.join(out_dir, fname), "w", encoding="utf-8") as f:
             f.write(doc)
     return out_dir

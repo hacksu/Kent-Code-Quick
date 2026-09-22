@@ -147,3 +147,120 @@ describe('Admin page - landing page sign-up switch', () => {
 	});
 });
 
+describe('Admin page - project export', () => {
+	function adminSession() {
+		mockFetch.mockResolvedValueOnce({
+			ok: true,
+			status: 200,
+			json: async () => ({ discord_id: '1', discord_username: 'Admin', is_admin: true }),
+		});
+		mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ signup_open: false }) });
+	}
+
+	function activeGame(participants: Record<string, unknown>) {
+		fireSocketEvent('game_state', {
+			status: 'active',
+			duration_ms: 6_000_000,
+			started_at: 1,
+			ended_at: null,
+			allow_internal_clipboard: true,
+			lobby_count: 0,
+			lobby_names: [],
+			participants,
+		});
+		flushSync();
+	}
+
+	const alice = { id: 'a', name: 'Alice', html: '', css: '', js: '', tab_out_count: 0, copy_attempt_count: 0, submitted_at: 12, final_html: null, final_css: null, final_js: null };
+	const bob = { ...alice, id: 'b', name: 'Bob', submitted_at: null };
+
+	it('stays hidden until a game has participants', async () => {
+		adminSession();
+		const { queryByTestId, findByRole } = render(Page);
+		await findByRole('button', { name: /start game/i });
+		expect(queryByTestId('export-section')).toBeNull();
+	});
+
+	it('counts how many projects are finished', async () => {
+		adminSession();
+		const { findByTestId } = render(Page);
+		await findByTestId('toggle-signup');
+		activeGame({ t1: alice, t2: bob });
+
+		const section = await findByTestId('export-section');
+		expect(section.textContent).toContain('1 of 2 projects finished');
+	});
+
+	it('cannot export finished projects while none are finished', async () => {
+		adminSession();
+		const { findByTestId } = render(Page);
+		await findByTestId('toggle-signup');
+		activeGame({ t2: bob });
+
+		expect((await findByTestId('export-finished')).hasAttribute('disabled')).toBe(true);
+		expect((await findByTestId('export-all')).hasAttribute('disabled')).toBe(false);
+	});
+
+	it('downloads a zip named by the server when exporting', async () => {
+		adminSession();
+		const { findByTestId } = render(Page);
+		await findByTestId('toggle-signup');
+		activeGame({ t1: alice, t2: bob });
+
+		const createObjectURL = vi.fn(() => 'blob:zip');
+		const revokeObjectURL = vi.fn();
+		Object.assign(URL, { createObjectURL, revokeObjectURL });
+		const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+		mockFetch.mockResolvedValueOnce({
+			ok: true,
+			blob: async () => new Blob(['zip']),
+			headers: { get: () => 'attachment; filename="kcq-projects-20250101-120000.zip"' },
+		});
+		await fireEvent.click(await findByTestId('export-finished'));
+
+		expect(mockFetch).toHaveBeenLastCalledWith('/api/game/export?scope=finished');
+		await waitFor(() => expect(click).toHaveBeenCalled());
+		const link = click.mock.instances[0] as HTMLAnchorElement;
+		expect(link.download).toBe('kcq-projects-20250101-120000.zip');
+		expect(revokeObjectURL).toHaveBeenCalledWith('blob:zip');
+		click.mockRestore();
+	});
+
+	it('asks for every project when exporting all', async () => {
+		adminSession();
+		const { findByTestId } = render(Page);
+		await findByTestId('toggle-signup');
+		activeGame({ t1: alice, t2: bob });
+
+		Object.assign(URL, { createObjectURL: vi.fn(() => 'blob:zip'), revokeObjectURL: vi.fn() });
+		const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+		mockFetch.mockResolvedValueOnce({
+			ok: true,
+			blob: async () => new Blob(['zip']),
+			headers: { get: () => null },
+		});
+
+		await fireEvent.click(await findByTestId('export-all'));
+		expect(mockFetch).toHaveBeenLastCalledWith('/api/game/export?scope=all');
+		await waitFor(() => expect(click).toHaveBeenCalled());
+		click.mockRestore();
+	});
+
+	it('surfaces the reason an export failed', async () => {
+		adminSession();
+		const { findByTestId } = render(Page);
+		await findByTestId('toggle-signup');
+		activeGame({ t1: alice });
+
+		mockFetch.mockResolvedValueOnce({
+			ok: false,
+			status: 404,
+			json: async () => ({ error: 'no projects to export' }),
+		});
+		await fireEvent.click(await findByTestId('export-finished'));
+
+		const error = await findByTestId('export-error');
+		expect(error.textContent).toContain('no projects to export');
+	});
+});

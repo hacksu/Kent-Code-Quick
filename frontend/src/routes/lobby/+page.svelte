@@ -5,6 +5,7 @@
 	import kcqLogo from '$lib/assets/images/kcq_logo.png';
 	import ParticleBackground from '$lib/components/ParticleBackground.svelte';
 	import PenaltyRules from '$lib/components/PenaltyRules.svelte';
+	import { isWaitingForSignup } from '$lib/auth-gate';
 
 	let lobbyCount = $state(0);
 	let locked = $state(false);
@@ -14,7 +15,10 @@
 	onMount(() => {
 		fetch('/api/auth/me').then(async (resp) => {
 			if (!resp.ok) { window.location.href = '/'; return; }
-			const { discord_username: name } = await resp.json();
+			const me = await resp.json();
+			// Someone who navigated straight here before sign-ups opened.
+			if (isWaitingForSignup(me)) { window.location.href = '/'; return; }
+			const name = me.discord_username;
 			username = name;
 
 			socket = io({ autoConnect: false });
@@ -26,6 +30,7 @@
 				socket.emit('join_lobby', { name, token: storedToken ?? undefined });
 			});
 			socket.on('auth_required', () => { window.location.href = '/'; });
+			socket.on('signup_closed', () => { window.location.href = '/'; });
 			socket.on('token_assigned', ({ token }: { token: string }) => { saveToken(token); });
 			socket.on('lobby_update', ({ lobby_count }: { lobby_count: number }) => { lobbyCount = lobby_count; });
 			socket.on('game_start', ({ token }: { token: string }) => { saveToken(token); window.location.href = '/play'; });

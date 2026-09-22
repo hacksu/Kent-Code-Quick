@@ -31,10 +31,36 @@ describe('Home page - auth redirect', () => {
 		await waitFor(() => expect(locationMock.replace).toHaveBeenCalledWith('/admin'));
 	});
 
-	it('redirects an authenticated non-admin to /lobby', async () => {
-		mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ is_admin: false }) });
+	it('redirects an authenticated non-admin to /lobby once sign-ups are open', async () => {
+		mockFetch.mockResolvedValueOnce({
+			ok: true,
+			json: async () => ({ is_admin: false, signup_open: true }),
+		});
 		render(Page);
 		await waitFor(() => expect(locationMock.replace).toHaveBeenCalledWith('/lobby'));
+	});
+
+	it('keeps an authenticated non-admin here while sign-ups are closed', async () => {
+		mockFetch.mockResolvedValueOnce({
+			ok: true,
+			json: async () => ({ is_admin: false, signup_open: false }),
+		});
+		mockFetch.mockResolvedValueOnce({
+			ok: true,
+			json: async () => ({ discord_client_id: 'cid', signup_open: false }),
+		});
+		const { findByTestId } = render(Page);
+		expect((await findByTestId('waiting-note')).textContent).toMatch(/sign-ups open at the event/i);
+		expect(locationMock.replace).not.toHaveBeenCalled();
+	});
+
+	it('still lets an admin through while sign-ups are closed', async () => {
+		mockFetch.mockResolvedValueOnce({
+			ok: true,
+			json: async () => ({ is_admin: true, signup_open: false }),
+		});
+		render(Page);
+		await waitFor(() => expect(locationMock.replace).toHaveBeenCalledWith('/admin'));
 	});
 });
 

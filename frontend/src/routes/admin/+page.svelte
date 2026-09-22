@@ -11,8 +11,16 @@
 	let signupSaving = $state(false);
 	let allowInternalClipboard = $state(true);
 	let starting = $state(false);
+	let exporting = $state<'finished' | 'all' | null>(null);
+	let exportError = $state<string | null>(null);
+	let timerFullscreen = $state(false);
 
 	const store = createWatchStore();
+
+	const participantCount = $derived(Object.keys(store.participants).length);
+	const finishedCount = $derived(
+		Object.values(store.participants).filter((p) => p.submitted_at != null).length
+	);
 
 	onMount(async () => {
 		const resp = await fetch('/api/auth/me');
@@ -51,11 +59,60 @@
 		signupSaving = false;
 	}
 
+	/** Pull the server's suggested filename out of Content-Disposition. */
+	function filenameFrom(disposition: string | null): string | null {
+		const match = disposition?.match(/filename="([^"]+)"/);
+		return match ? match[1] : null;
+	}
+
+	async function exportProjects(scope: 'finished' | 'all') {
+		exporting = scope;
+		exportError = null;
+		try {
+			const resp = await fetch(`/api/game/export?scope=${scope}`);
+			if (!resp.ok) {
+				const body = await resp.json().catch(() => null);
+				exportError = body?.error ?? 'Export failed.';
+			} else {
+				const blob = await resp.blob();
+				const url = URL.createObjectURL(blob);
+				const link = document.createElement('a');
+				link.href = url;
+				link.download = filenameFrom(resp.headers.get('Content-Disposition')) ?? 'kcq-projects.zip';
+				document.body.appendChild(link);
+				link.click();
+				link.remove();
+				URL.revokeObjectURL(url);
+			}
+		} catch {
+			exportError = 'Export failed.';
+		}
+		exporting = null;
+	}
+
 	function handleStart() {
 		starting = true;
 		store.sendStartGame(durationMinutes * 60 * 1000, allowInternalClipboard);
 		starting = false;
 	}
+
+	function toggleTimerFullscreen() {
+		if (!document.fullscreenElement) {
+			document.documentElement.requestFullscreen().catch(() => {
+				// fullscreen unsupported/denied; overlay simply won't show
+			});
+		} else {
+			document.exitFullscreen();
+		}
+	}
+
+	onMount(() => {
+		function onFullscreenChange() {
+			timerFullscreen = document.fullscreenElement !== null;
+		}
+		document.addEventListener('fullscreenchange', onFullscreenChange);
+		return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
+	});
 
 	const labelClass = 'text-sm font-medium text-gray-300';
 	const inputClass = 'w-20 rounded border border-white/20 bg-white/10 px-2 py-1 text-sm text-white';
@@ -124,10 +181,18 @@
 			{:else if store.gameStatus === 'active'}
 				<section class="w-full max-w-sm rounded-xl border border-white/10 bg-white/5 p-6">
 					<h2 class="mb-2 text-base font-semibold">Game in Progress</h2>
-					<div class="mb-4">
+					<div class="mb-4 flex items-center gap-3">
 						<Timer elapsed={store.elapsed} durationMs={store.durationMs} />
+						<button
+							type="button"
+							data-testid="timer-fullscreen-btn"
+							onclick={toggleTimerFullscreen}
+							class="rounded border border-white/20 px-2 py-1 text-xs text-gray-300 hover:bg-white/10"
+						>
+							Fullscreen
+						</button>
 					</div>
-					<p class="mb-1 text-sm text-gray-400">{Object.keys(store.participants).length} participants</p>
+					<p class="mb-1 text-sm text-gray-400">{participantCount} participants</p>
 					<p class="mb-4 text-xs text-gray-500">
 						Internal copy/paste: {store.allowInternalClipboard ? 'allowed' : 'blocked'}
 					</p>
@@ -163,12 +228,49 @@
 				</section>
 			{/if}
 
+			{#if participantCount > 0}
+				<section data-testid="export-section" class="w-full max-w-sm rounded-xl border border-white/10 bg-white/5 p-6">
+					<h2 class="mb-1 text-base font-semibold">Export projects</h2>
+					<p class="mb-4 text-sm text-gray-400">
+						{finishedCount} of {participantCount} project{participantCount !== 1 ? 's' : ''} finished.
+					</p>
+					<div class="flex gap-3">
+						<button
+							type="button"
+							data-testid="export-finished"
+							disabled={exporting !== null || finishedCount === 0}
+							onclick={() => exportProjects('finished')}
+							class="flex-1 rounded-lg bg-hacksu-green px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-40"
+						>
+							{exporting === 'finished' ? 'Preparing...' : `Finished (${finishedCount})`}
+						</button>
+						<button
+							type="button"
+							data-testid="export-all"
+							disabled={exporting !== null}
+							onclick={() => exportProjects('all')}
+							class="flex-1 rounded-lg border border-white/20 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10 disabled:opacity-40"
+						>
+							{exporting === 'all' ? 'Preparing...' : `All (${participantCount})`}
+						</button>
+					</div>
+					{#if exportError}
+						<p data-testid="export-error" class="mt-3 text-sm text-red-400">{exportError}</p>
+					{/if}
+					{#if store.gameStatus === 'ended'}
+						<p class="mt-3 text-xs text-gray-500">
+							Download before you start a new round
+						</p>
+					{/if}
+				</section>
+			{/if}
+
 			<section class="w-full max-w-sm rounded-xl border border-white/10 bg-white/5 p-6">
 				<h2 class="mb-1 text-base font-semibold">Landing page sign-up</h2>
 				<p class="mb-4 text-sm text-gray-400">
 					{signupOpen
 						? 'Visitors see the sign-up button and can log in.'
-						: 'The sign-up button is hidden. Turn it on when the event starts.'}
+						: 'The sign-up button is hidden.'}
 				</p>
 				<button
 					type="button"
@@ -185,4 +287,22 @@
 
 		</main>
 	</div>
+
+	{#if timerFullscreen}
+		<div
+			data-testid="timer-fullscreen-overlay"
+			class="fixed inset-0 z-50 flex flex-col items-center justify-center gap-8 bg-hacksu-grey"
+		>
+			<div class="text-[min(24vw,24vh)] font-bold leading-none">
+				<Timer elapsed={store.elapsed} durationMs={store.durationMs} />
+			</div>
+			<button
+				type="button"
+				onclick={toggleTimerFullscreen}
+				class="text-sm text-gray-400 hover:text-white"
+			>
+				Exit Fullscreen (Esc)
+			</button>
+		</div>
+	{/if}
 {/if}

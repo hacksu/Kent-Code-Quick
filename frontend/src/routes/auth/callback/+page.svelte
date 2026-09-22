@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { destinationFor } from '$lib/auth-gate';
 
 	let status = $state('Completing login...');
 
@@ -28,7 +29,7 @@
 				return;
 			}
 			const data = await resp.json();
-			window.location.replace(data.is_admin ? '/admin' : '/lobby');
+			window.location.replace(destinationFor(data));
 		} catch (e: any) {
 			status = `Login failed: ${e?.message ?? e}`;
 		}
