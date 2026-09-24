@@ -365,6 +365,9 @@ def build_export_archive(g: GameState) -> Tuple[bytes, str, int]:
 
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as archive:
+        # GitHub Pages runs Jekyll by default, which can choke on stray
+        # {{ }} / {% %} in a participant's JS or CSS. This disables it.
+        archive.writestr(".nojekyll", "")
         for token, p in entries:
             html_src, css, js = final_code(p)
             archive.writestr(
