@@ -128,12 +128,11 @@ def test_archive_carries_an_index_and_a_manifest():
     payload, _, _ = build_export_archive(g)
     archive = open_zip(payload)
     names = archive.namelist()
-    root = names[0].split("/", 1)[0]
+    root = next(n.split("/", 1)[0] for n in names if "/" in n)
     assert f"{root}/index.html" in names
     assert f"{root}/manifest.json" in names
 
     manifest = json.loads(archive.read(f"{root}/manifest.json"))
-    assert manifest["exported_count"] == 1
     assert manifest["exported_count"] == 1
     assert manifest["participant_count"] == 1
     entry = manifest["projects"][0]
@@ -146,12 +145,19 @@ def test_archive_carries_an_index_and_a_manifest():
     assert "Alice" in index
 
 
+def test_archive_has_a_root_level_nojekyll_for_github_pages():
+    g, by_name = game_with("Alice")
+    by_name["Alice"].submitted_at = 1.0
+    payload, _, _ = build_export_archive(g)
+    assert ".nojekyll" in open_zip(payload).namelist()
+
+
 def test_index_escapes_participant_names():
     g, by_name = game_with("<script>evil</script>")
     by_name["<script>evil</script>"].submitted_at = 1.0
     payload, _, _ = build_export_archive(g)
     archive = open_zip(payload)
-    root = archive.namelist()[0].split("/", 1)[0]
+    root = next(n.split("/", 1)[0] for n in archive.namelist() if "/" in n)
     index = archive.read(f"{root}/index.html").decode()
     assert "<script>evil</script>" not in index
     assert "&lt;script&gt;" in index
