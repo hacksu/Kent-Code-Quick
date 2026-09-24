@@ -397,6 +397,100 @@ def save_results(g: GameState) -> Optional[str]:
     return out_dir
 
 
+_DOC_HEAD_RE = re.compile(r"<style>(.*?)</style>\n</head>\n<body>\n", re.DOTALL)
+
+
+def _parse_document(doc: str) -> Tuple[str, str, str]:
+    """Reverse `_build_document`: pull html/css/js back out of an exported project file."""
+    m = _DOC_HEAD_RE.search(doc)
+    if not m:
+        raise ValueError("unrecognized project document format")
+    css = m.group(1)
+    rest = doc[m.end():]
+    html, sep, tail = rest.rpartition("\n<script>")
+    if not sep:
+        raise ValueError("unrecognized project document format")
+    safe_js, sep2, _ = tail.rpartition("</script>\n</body>\n</html>")
+    if not sep2:
+        raise ValueError("unrecognized project document format")
+    js = safe_js.replace("<\\/script>", "</script>")
+    return html, css, js
+
+
+def _epoch(iso: Optional[str]) -> Optional[float]:
+    if not iso:
+        return None
+    try:
+        return datetime.fromisoformat(iso).timestamp()
+    except ValueError:
+        return None
+
+
+def restore_from_export(zip_bytes: bytes) -> dict:
+    """Rebuild live participants (and, if no game is running yet, game timing)
+    from a previously-downloaded export zip (see `build_export_archive`).
+
+    Existing participants have only their html/css/js overwritten -- their
+    submitted/finished status is never touched. Participants missing from the
+    live game are recreated fresh (unsubmitted) from the archive.
+    """
+    with zipfile.ZipFile(io.BytesIO(zip_bytes)) as archive:
+        manifest_name = next(
+            (n for n in archive.namelist() if n.endswith("manifest.json")), None
+        )
+        if manifest_name is None:
+            raise ValueError("no manifest.json found in archive")
+        manifest = json.loads(archive.read(manifest_name).decode("utf-8"))
+        root = manifest_name.rsplit("/", 1)[0] if "/" in manifest_name else ""
+
+        g = get_or_create_game()
+        results = []
+        for entry in manifest.get("projects", []):
+            token = entry.get("token")
+            name = entry.get("name", "participant")
+            if not token:
+                results.append({"name": name, "token": token, "restored": False, "error": "missing token"})
+                continue
+            file_rel = entry.get("file", "")
+            file_path = f"{root}/{file_rel}" if root else file_rel
+            try:
+                doc = archive.read(file_path).decode("utf-8")
+                html, css, js = _parse_document(doc)
+            except (KeyError, ValueError) as exc:
+                results.append({"name": name, "token": token, "restored": False, "error": str(exc)})
+                continue
+
+            existing = g.participants.get(token)
+            if existing is not None:
+                existing.html, existing.css, existing.js = html, css, js
+            else:
+                g.participants[token] = Participant(
+                    id=entry.get("id") or str(uuid.uuid4()),
+                    name=name,
+                    sid="",
+                    discord_id=entry.get("discord_id", ""),
+                    html=html,
+                    css=css,
+                    js=js,
+                    tab_out_count=entry.get("tab_out_count", 0),
+                    copy_attempt_count=entry.get("copy_attempt_count", 0),
+                )
+            results.append({"name": name, "token": token, "restored": True, "error": None})
+
+        if g.started_at is None and manifest.get("started_at"):
+            g.status = manifest.get("status", g.status)
+            g.duration_ms = manifest.get("duration_ms", g.duration_ms)
+            g.started_at = _epoch(manifest.get("started_at"))
+            g.ended_at = _epoch(manifest.get("ended_at"))
+            if g.status == "active" and g.ended_at is None:
+                g.paused = True
+                g.paused_at = time.time()
+                g.pause_duration_ms = 0.0
+
+        save_state_snapshot(g)
+    return {"participant_count": len(g.participants), "results": results}
+
+
 def _state_path() -> str:
     return os.path.join(os.environ.get("RESULTS_DIR", "results"), "state.json")
 
