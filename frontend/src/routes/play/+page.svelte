@@ -22,9 +22,8 @@
 	let docsOpen = $state(false);
 	let docsUrl = $state<string | null>(null);
 	let endOverlayDismissed = $state(false);
-	let editorRef: Editor;
 
-	const frozen = $derived(store.hasSubmitted || store.eventEnded || store.paused);
+	const frozen = $derived(store.eventEnded || store.paused);
 
 	onMount(async () => {
 		const res = await fetch('/api/config');
@@ -86,11 +85,6 @@
 		else { js = v; }
 		store.sendCodeUpdate(html, css, js);
 	}
-
-	function handleSubmit() {
-		editorRef?.flush();
-		store.sendSubmit();
-	}
 </script>
 
 <div class="room-layout grid h-screen grid-rows-[auto_1fr_auto_auto] overflow-hidden">
@@ -99,10 +93,7 @@
 			<PenaltyBanner penalty={store.currentPenalty} />
 		</div>
 		<div class="timer-slot flex items-center gap-2">
-			<Timer elapsed={store.elapsed} durationMs={store.durationMs} />
-			{#if store.paused}
-				<span class="rounded bg-yellow-500/20 px-2 py-0.5 text-xs font-medium text-yellow-400">Paused by admin</span>
-			{/if}
+			<Timer elapsed={store.elapsed} durationMs={store.durationMs} paused={store.paused} />
 		</div>
 	</div>
 
@@ -127,7 +118,6 @@
 			</div>
 			<div class="editor-wrapper flex-1 overflow-hidden">
 				<Editor
-					bind:this={editorRef}
 					language={activeTab}
 					value={activeTab === 'html' ? html : activeTab === 'css' ? css : js}
 					readonly={frozen}
@@ -155,19 +145,9 @@
 			onclick={() => (docsOpen = !docsOpen)}
 		>{docsOpen ? 'Hide Docs' : 'Show Docs'}</button>
 
-		<div class="submit-slot">
-			{#if store.eventEnded}
-				<span class="text-sm text-gray-400">Event ended</span>
-			{:else if store.hasSubmitted}
-				<span class="rounded bg-hacksu-green/20 px-3 py-1 text-sm font-medium text-hacksu-green">Submitted</span>
-			{:else}
-				<button
-					type="button"
-					class="submit-btn rounded bg-hacksu-green px-4 py-1.5 text-sm font-semibold text-white hover:opacity-90"
-					onclick={handleSubmit}
-				>Submit</button>
-			{/if}
-	</div>
+		{#if store.eventEnded}
+			<span class="text-sm text-gray-400">Event ended</span>
+		{/if}
 	</div>
 </div>
 
@@ -176,9 +156,7 @@
 		<div class="mx-4 max-w-sm rounded-lg border border-white/10 bg-hacksu-grey p-6 text-center shadow-xl">
 			<h2 class="text-2xl font-bold text-white">Event Ended</h2>
 			<p class="mt-2 text-sm text-gray-400">
-				{store.hasSubmitted
-					? 'Time is up. Your submitted code has been locked in.'
-					: 'Time is up. Your code as it stood has been locked in.'}
+				Time is up. Your code as it stood has been locked in.
 			</p>
 			<button
 				type="button"

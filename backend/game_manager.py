@@ -238,17 +238,6 @@ def auto_snapshot_all(g: GameState) -> None:
             participant.submitted_at = time.time()
 
 
-def snapshot_participant(sid: str) -> None:
-    result = get_participant_by_sid(sid)
-    if not result:
-        return
-    _, participant = result
-    participant.final_html = participant.html
-    participant.final_css = participant.css
-    participant.final_js = participant.js
-    participant.submitted_at = time.time()
-
-
 def _safe_filename(name: str) -> str:
     cleaned = re.sub(r"[^A-Za-z0-9_-]+", "_", name).strip("_")
     return cleaned or "participant"
@@ -267,17 +256,11 @@ def _build_document(name: str, html: str, css: str, js: str) -> str:
     )
 
 
-EXPORT_SCOPE_FINISHED = "finished"
-EXPORT_SCOPE_ALL = "all"
-EXPORT_SCOPES = (EXPORT_SCOPE_FINISHED, EXPORT_SCOPE_ALL)
-
-
 def is_finished(p: Participant) -> bool:
     """A project counts as finished once it has been snapshotted.
 
-    Snapshots happen when a participant submits, and for everyone still
-    working when the admin ends the event -- so after an event every
-    project is finished.
+    Snapshots happen for everyone at once when the admin ends the event --
+    nothing is finished before then.
     """
     return p.submitted_at is not None
 
@@ -291,12 +274,9 @@ def final_code(p: Participant) -> Tuple[str, str, str]:
     )
 
 
-def export_entries(g: GameState, scope: str = EXPORT_SCOPE_FINISHED) -> List[Tuple[str, Participant]]:
+def export_entries(g: GameState) -> List[Tuple[str, Participant]]:
     """(token, participant) pairs to export, ordered by display name."""
-    entries = sorted(g.participants.items(), key=lambda kv: (kv[1].name.lower(), kv[0]))
-    if scope == EXPORT_SCOPE_ALL:
-        return entries
-    return [(token, p) for token, p in entries if is_finished(p)]
+    return sorted(g.participants.items(), key=lambda kv: (kv[1].name.lower(), kv[0]))
 
 
 def _iso(ts: Optional[float]) -> Optional[str]:
@@ -315,10 +295,9 @@ def _export_project_filename(token: str, p: Participant) -> str:
     return f"{_safe_filename(p.name)}-{token}.html"
 
 
-def _export_manifest(g: GameState, entries: List[Tuple[str, Participant]], scope: str) -> dict:
+def _export_manifest(g: GameState, entries: List[Tuple[str, Participant]]) -> dict:
     return {
         "exported_at": _iso(time.time()),
-        "scope": scope,
         "status": g.status,
         "duration_ms": g.duration_ms,
         "started_at": _iso(g.started_at),
@@ -342,7 +321,7 @@ def _export_manifest(g: GameState, entries: List[Tuple[str, Participant]], scope
     }
 
 
-def _export_index(g: GameState, entries: List[Tuple[str, Participant]], scope: str) -> str:
+def _export_index(g: GameState, entries: List[Tuple[str, Participant]]) -> str:
     """A tiny contact sheet so the zip can be browsed without a server."""
     rows = "\n".join(
         "<tr>"
@@ -364,7 +343,7 @@ def _export_index(g: GameState, entries: List[Tuple[str, Participant]], scope: s
         "th{font-size:12px;text-transform:uppercase;color:#666}"
         "</style>\n</head>\n<body>\n"
         "<h1>Kent Code Quick</h1>\n"
-        f"<p>{len(entries)} project(s), scope <strong>{html_escape(scope)}</strong>. "
+        f"<p>{len(entries)} project(s). "
         f"Event {html_escape(g.status)}; started {html_escape(_local_time(g.started_at))}, "
         f"ended {html_escape(_local_time(g.ended_at))}.</p>\n"
         "<table>\n<thead><tr><th>Name</th><th>Finished</th><th>Submitted</th>"
@@ -374,17 +353,13 @@ def _export_index(g: GameState, entries: List[Tuple[str, Participant]], scope: s
     )
 
 
-def build_export_archive(
-    g: GameState, scope: str = EXPORT_SCOPE_FINISHED
-) -> Tuple[bytes, str, int]:
-    """Zip every in-scope project into one downloadable archive.
+def build_export_archive(g: GameState) -> Tuple[bytes, str, int]:
+    """Zip every project into one downloadable archive.
 
     Returns the zip bytes, a suggested filename, and how many projects
     went in (zero means there was nothing to export).
     """
-    if scope not in EXPORT_SCOPES:
-        raise ValueError(f"unknown export scope: {scope}")
-    entries = export_entries(g, scope)
+    entries = export_entries(g)
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     root = f"kcq-projects-{stamp}"
 
@@ -396,10 +371,10 @@ def build_export_archive(
                 f"{root}/projects/{_export_project_filename(token, p)}",
                 _build_document(p.name, html_src, css, js),
             )
-        archive.writestr(f"{root}/index.html", _export_index(g, entries, scope))
+        archive.writestr(f"{root}/index.html", _export_index(g, entries))
         archive.writestr(
             f"{root}/manifest.json",
-            json.dumps(_export_manifest(g, entries, scope), indent=2),
+            json.dumps(_export_manifest(g, entries), indent=2),
         )
     return buf.getvalue(), f"{root}.zip", len(entries)
 

@@ -42,4 +42,16 @@ describe('Timer.svelte', () => {
 		const { getByText } = render(Timer, { elapsed: 0, durationMs: 9_000 });
 		expect(getByText('0:09')).toBeTruthy();
 	});
+
+	it('turns yellow when paused', () => {
+		const { container } = render(Timer, { elapsed: 30_000, durationMs: 60_000, paused: true });
+		expect(container.querySelector('.paused')).toBeTruthy();
+	});
+
+	it('paused takes precedence over the overtime color', () => {
+		const { container } = render(Timer, { elapsed: 65_000, durationMs: 60_000, paused: true });
+		const span = container.querySelector('span')!;
+		expect(span.classList.contains('paused')).toBe(true);
+		expect(span.classList.contains('overtime')).toBe(false);
+	});
 });

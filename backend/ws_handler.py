@@ -20,7 +20,6 @@ from game_manager import (
     reset_game,
     resume_game,
     save_state_snapshot,
-    snapshot_participant,
     start_game,
 )
 import game_manager
@@ -233,25 +232,6 @@ def handle_copy_attempt(data: dict) -> None:
                 "token": token,
                 "copy_attempt_count": participant.copy_attempt_count,
             },
-            to=ADMIN_ROOM,
-        )
-
-
-@socketio.on("submit")
-def handle_submit(data: dict) -> None:
-    pair = get_participant_by_sid(request.sid)
-    if not pair:
-        return
-    token, participant = pair
-    if participant.submitted_at is not None:
-        return
-    snapshot_participant(request.sid)
-    emit("submitted")
-    g = game_manager.game
-    if g:
-        socketio.emit(
-            "participant_update",
-            {"token": token, **participant.to_dict()},
             to=ADMIN_ROOM,
         )
 
