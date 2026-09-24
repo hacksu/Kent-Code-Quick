@@ -1,20 +1,77 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Kent Code Quick</title>
-<style>
-  body{font:16px/1.5 system-ui,sans-serif;margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#111;color:#eee}
-  main{text-align:center;padding:2rem}
-  h1{margin:0 0 .5rem;font-size:1.5rem}
-  p{margin:0;color:#999}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wordle</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<main>
-  <h1>Kent Code Quick</h1>
-  <p>GitHub Pages is wired up. Event exports land here.</p>
-</main>
+  <header>
+    <button class="icon-btn" id="help-btn" aria-label="How to play">?</button>
+    <h1>Wordle</h1>
+    <div class="header-right">
+      <button class="text-btn" id="new-btn" aria-label="New random word" title="Practice: new random word">reset</button>
+      <button class="text-btn" id="stats-btn" aria-label="Statistics">stats</button>
+    </div>
+  </header>
+
+  <div id="toasts" aria-live="polite"></div>
+
+  <main>
+    <div id="board" aria-label="Game board"></div>
+  </main>
+
+  <div id="keyboard" aria-label="Keyboard"></div>
+
+  <div class="modal hidden" id="help-modal" role="dialog" aria-modal="true" aria-labelledby="help-title">
+    <div class="modal-content">
+      <button class="close-btn" aria-label="Close">×</button>
+      <h2 id="help-title">How To Play</h2>
+      <p>Guess the word in 6 tries.</p>
+      <ul>
+        <li>Each guess must be a valid 5-letter word.</li>
+        <li>The color of the tiles will change to show how close your guess was to the word.</li>
+      </ul>
+      <p><strong>Examples</strong></p>
+      <div class="example">
+        <div class="tile correct">W</div><div class="tile">E</div><div class="tile">A</div><div class="tile">R</div><div class="tile">Y</div>
+      </div>
+      <p><strong>W</strong> is in the word and in the correct spot.</p>
+      <div class="example">
+        <div class="tile">P</div><div class="tile present">I</div><div class="tile">L</div><div class="tile">L</div><div class="tile">S</div>
+      </div>
+      <p><strong>I</strong> is in the word but in the wrong spot.</p>
+      <div class="example">
+        <div class="tile">V</div><div class="tile">A</div><div class="tile">G</div><div class="tile absent">U</div><div class="tile">E</div>
+      </div>
+      <p><strong>U</strong> is not in the word in any spot.</p>
+      <p class="muted">A new daily puzzle is released each day. Use ↻ for unlimited practice games.</p>
+    </div>
+  </div>
+
+  <div class="modal hidden" id="stats-modal" role="dialog" aria-modal="true" aria-labelledby="stats-title">
+    <div class="modal-content">
+      <button class="close-btn" aria-label="Close">×</button>
+      <h2 id="stats-title">Statistics</h2>
+      <div class="stats-row">
+        <div class="stat"><div class="stat-num" id="stat-played">0</div><div class="stat-label">Played</div></div>
+        <div class="stat"><div class="stat-num" id="stat-win">0</div><div class="stat-label">Win %</div></div>
+        <div class="stat"><div class="stat-num" id="stat-streak">0</div><div class="stat-label">Current Streak</div></div>
+        <div class="stat"><div class="stat-num" id="stat-max">0</div><div class="stat-label">Max Streak</div></div>
+      </div>
+      <h3>Guess Distribution</h3>
+      <div id="distribution"></div>
+      <div class="stats-footer hidden" id="stats-footer">
+        <div class="countdown">
+          <div class="stat-label">Next Wordle</div>
+          <div id="countdown">--:--:--</div>
+        </div>
+        <button id="share-btn">Share</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
 </body>
 </html>
