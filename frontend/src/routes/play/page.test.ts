@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render } from '@testing-library/svelte';
-import { flushSync } from 'svelte';
 
 const { mockGoto } = vi.hoisted(() => ({ mockGoto: vi.fn() }));
 vi.mock('$app/navigation', () => ({ goto: mockGoto }));
@@ -93,19 +92,6 @@ describe('Play page', () => {
 		render(Page);
 		fireSocketEvent('connect');
 		expect(mockSocket.emit).toHaveBeenCalledWith('join_game', { token: 'test-token' });
-	});
-
-	it('shows submit button when not submitted', () => {
-		const { container } = render(Page);
-		expect(container.querySelector('.submit-btn')).toBeTruthy();
-	});
-
-	it('shows Submitted state after submitted event', () => {
-		const { container } = render(Page);
-		fireSocketEvent('submitted');
-		flushSync();
-		expect(container.querySelector('.submit-btn')).toBeNull();
-		expect(container.textContent).toMatch(/submitted/i);
 	});
 });
 

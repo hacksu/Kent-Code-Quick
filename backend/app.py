@@ -218,11 +218,8 @@ def export_projects():
     g = game_manager.game
     if g is None:
         return jsonify({"error": "no game"}), 404
-    scope = request.args.get("scope", game_manager.EXPORT_SCOPE_FINISHED)
-    if scope not in game_manager.EXPORT_SCOPES:
-        return jsonify({"error": "invalid scope"}), 400
 
-    payload, filename, count = game_manager.build_export_archive(g, scope)
+    payload, filename, count = game_manager.build_export_archive(g)
     if count == 0:
         return jsonify({"error": "no projects to export"}), 404
 
