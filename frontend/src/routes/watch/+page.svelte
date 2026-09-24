@@ -91,9 +91,18 @@
 			<div class="flex items-center gap-3">
 				<img src={kcqLogo} alt="Kent Code Quick" class="h-7 w-auto" />
 				<Timer elapsed={store.elapsed} durationMs={store.durationMs} />
+				{#if store.paused}
+					<span class="rounded bg-yellow-500/20 px-2 py-0.5 text-xs font-medium text-yellow-400">Paused</span>
+				{/if}
 			</div>
 			<div class="flex items-center gap-3">
 				{#if store.gameStatus === 'active'}
+					<button
+						type="button"
+						data-testid="pause-game-btn"
+						onclick={() => (store.paused ? store.sendResumeGame() : store.sendPauseGame())}
+						class="rounded bg-yellow-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-yellow-700"
+					>{store.paused ? 'Resume' : 'Pause'}</button>
 					<button
 						type="button"
 						data-testid="end-game-btn"

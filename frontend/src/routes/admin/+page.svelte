@@ -11,16 +11,13 @@
 	let signupSaving = $state(false);
 	let allowInternalClipboard = $state(true);
 	let starting = $state(false);
-	let exporting = $state<'finished' | 'all' | null>(null);
+	let exporting = $state(false);
 	let exportError = $state<string | null>(null);
 	let timerFullscreen = $state(false);
 
 	const store = createWatchStore();
 
 	const participantCount = $derived(Object.keys(store.participants).length);
-	const finishedCount = $derived(
-		Object.values(store.participants).filter((p) => p.submitted_at != null).length
-	);
 
 	onMount(async () => {
 		const resp = await fetch('/api/auth/me');
@@ -65,11 +62,11 @@
 		return match ? match[1] : null;
 	}
 
-	async function exportProjects(scope: 'finished' | 'all') {
-		exporting = scope;
+	async function exportProjects() {
+		exporting = true;
 		exportError = null;
 		try {
-			const resp = await fetch(`/api/game/export?scope=${scope}`);
+			const resp = await fetch('/api/game/export');
 			if (!resp.ok) {
 				const body = await resp.json().catch(() => null);
 				exportError = body?.error ?? 'Export failed.';
@@ -87,7 +84,7 @@
 		} catch {
 			exportError = 'Export failed.';
 		}
-		exporting = null;
+		exporting = false;
 	}
 
 	function handleStart() {
@@ -183,6 +180,9 @@
 					<h2 class="mb-2 text-base font-semibold">Game in Progress</h2>
 					<div class="mb-4 flex items-center gap-3">
 						<Timer elapsed={store.elapsed} durationMs={store.durationMs} />
+						{#if store.paused}
+							<span class="rounded bg-yellow-500/20 px-2 py-0.5 text-xs font-medium text-yellow-400">Paused</span>
+						{/if}
 						<button
 							type="button"
 							data-testid="timer-fullscreen-btn"
@@ -200,6 +200,14 @@
 						<a href="/watch" class="flex-1 rounded-lg border border-white/20 px-4 py-2 text-center text-sm font-semibold text-white hover:bg-white/10">
 							Live View
 						</a>
+						<button
+							type="button"
+							data-testid="pause-game-btn"
+							onclick={() => (store.paused ? store.sendResumeGame() : store.sendPauseGame())}
+							class="flex-1 rounded-lg bg-yellow-600 px-4 py-2 text-sm font-semibold text-white hover:bg-yellow-700"
+						>
+							{store.paused ? 'Resume' : 'Pause'}
+						</button>
 						<button
 							type="button"
 							onclick={() => store.sendEndEvent()}
@@ -232,28 +240,17 @@
 				<section data-testid="export-section" class="w-full max-w-sm rounded-xl border border-white/10 bg-white/5 p-6">
 					<h2 class="mb-1 text-base font-semibold">Export projects</h2>
 					<p class="mb-4 text-sm text-gray-400">
-						{finishedCount} of {participantCount} project{participantCount !== 1 ? 's' : ''} finished.
+						{participantCount} project{participantCount !== 1 ? 's' : ''}.
 					</p>
-					<div class="flex gap-3">
-						<button
-							type="button"
-							data-testid="export-finished"
-							disabled={exporting !== null || finishedCount === 0}
-							onclick={() => exportProjects('finished')}
-							class="flex-1 rounded-lg bg-hacksu-green px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-40"
-						>
-							{exporting === 'finished' ? 'Preparing...' : `Finished (${finishedCount})`}
-						</button>
-						<button
-							type="button"
-							data-testid="export-all"
-							disabled={exporting !== null}
-							onclick={() => exportProjects('all')}
-							class="flex-1 rounded-lg border border-white/20 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10 disabled:opacity-40"
-						>
-							{exporting === 'all' ? 'Preparing...' : `All (${participantCount})`}
-						</button>
-					</div>
+					<button
+						type="button"
+						data-testid="export-projects"
+						disabled={exporting}
+						onclick={() => exportProjects()}
+						class="w-full rounded-lg bg-hacksu-green px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-40"
+					>
+						{exporting ? 'Preparing...' : `Export (${participantCount})`}
+					</button>
 					{#if exportError}
 						<p data-testid="export-error" class="mt-3 text-sm text-red-400">{exportError}</p>
 					{/if}

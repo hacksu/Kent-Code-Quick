@@ -10,7 +10,6 @@ import pytest
 from app import app
 import game_manager
 from game_manager import (
-    EXPORT_SCOPE_ALL,
     add_to_lobby,
     build_export_archive,
     create_game,
@@ -87,28 +86,16 @@ def test_is_finished_tracks_the_snapshot():
     assert is_finished(alice)
 
 
-def test_export_entries_defaults_to_finished_only():
+def test_export_entries_includes_finished_and_in_progress_projects():
     g, by_name = game_with("Alice", "Bob")
     by_name["Alice"].submitted_at = 1.0
-    assert [p.name for _, p in export_entries(g)] == ["Alice"]
-
-
-def test_export_entries_all_scope_includes_work_in_progress():
-    g, by_name = game_with("Alice", "Bob")
-    by_name["Alice"].submitted_at = 1.0
-    assert [p.name for _, p in export_entries(g, EXPORT_SCOPE_ALL)] == ["Alice", "Bob"]
+    assert [p.name for _, p in export_entries(g)] == ["Alice", "Bob"]
 
 
 def test_export_entries_sorted_by_name():
     g, _ = game_with("zoe", "Alice", "bob")
-    names = [p.name for _, p in export_entries(g, EXPORT_SCOPE_ALL)]
+    names = [p.name for _, p in export_entries(g)]
     assert names == ["Alice", "bob", "zoe"]
-
-
-def test_build_export_archive_rejects_unknown_scope():
-    g, _ = game_with("Alice")
-    with pytest.raises(ValueError):
-        build_export_archive(g, "everything")
 
 
 def test_archive_holds_one_standalone_document_per_project():
@@ -141,12 +128,11 @@ def test_archive_carries_an_index_and_a_manifest():
     payload, _, _ = build_export_archive(g)
     archive = open_zip(payload)
     names = archive.namelist()
-    root = names[0].split("/", 1)[0]
+    root = next(n.split("/", 1)[0] for n in names if "/" in n)
     assert f"{root}/index.html" in names
     assert f"{root}/manifest.json" in names
 
     manifest = json.loads(archive.read(f"{root}/manifest.json"))
-    assert manifest["scope"] == "finished"
     assert manifest["exported_count"] == 1
     assert manifest["participant_count"] == 1
     entry = manifest["projects"][0]
@@ -159,12 +145,19 @@ def test_archive_carries_an_index_and_a_manifest():
     assert "Alice" in index
 
 
+def test_archive_has_a_root_level_nojekyll_for_github_pages():
+    g, by_name = game_with("Alice")
+    by_name["Alice"].submitted_at = 1.0
+    payload, _, _ = build_export_archive(g)
+    assert ".nojekyll" in open_zip(payload).namelist()
+
+
 def test_index_escapes_participant_names():
     g, by_name = game_with("<script>evil</script>")
     by_name["<script>evil</script>"].submitted_at = 1.0
     payload, _, _ = build_export_archive(g)
     archive = open_zip(payload)
-    root = archive.namelist()[0].split("/", 1)[0]
+    root = next(n.split("/", 1)[0] for n in archive.namelist() if "/" in n)
     index = archive.read(f"{root}/index.html").decode()
     assert "<script>evil</script>" not in index
     assert "&lt;script&gt;" in index
@@ -192,22 +185,15 @@ def test_export_returns_404_when_no_game(client):
     assert resp.status_code == 404
 
 
-def test_export_rejects_an_unknown_scope(client):
+def test_export_returns_404_when_there_are_no_participants(client):
     set_admin_session(client)
-    game_with("Alice")
-    resp = client.get("/api/game/export?scope=everything")
-    assert resp.status_code == 400
-
-
-def test_export_returns_404_when_nothing_is_finished(client):
-    set_admin_session(client)
-    game_with("Alice")
+    create_game()
     resp = client.get("/api/game/export")
     assert resp.status_code == 404
     assert resp.get_json()["error"] == "no projects to export"
 
 
-def test_export_downloads_a_zip_of_finished_projects(client):
+def test_export_downloads_a_zip_of_every_project(client):
     set_admin_session(client)
     g, by_name = game_with("Alice", "Bob")
     by_name["Alice"].submitted_at = 1.0
@@ -216,16 +202,5 @@ def test_export_downloads_a_zip_of_finished_projects(client):
     assert resp.status_code == 200
     assert resp.mimetype == "application/zip"
     assert "attachment; filename=" in resp.headers["Content-Disposition"]
-    files = project_names(open_zip(resp.data))
-    assert len(files) == 1 and files[0].startswith("Alice-")
-
-
-def test_export_all_scope_includes_unfinished_projects(client):
-    set_admin_session(client)
-    g, by_name = game_with("Alice", "Bob")
-    by_name["Alice"].submitted_at = 1.0
-
-    resp = client.get("/api/game/export?scope=all")
-    assert resp.status_code == 200
     files = project_names(open_zip(resp.data))
     assert len(files) == 2

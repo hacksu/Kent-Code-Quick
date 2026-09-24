@@ -10,7 +10,7 @@ from game_manager import (
     GameState, Participant, LobbyEntry,
     create_game, get_or_create_game, add_to_lobby, reset_game as reset_game_state,
     start_game, end_game, apply_penalty, record_copy_attempt,
-    snapshot_participant, auto_snapshot_all, get_participant_by_sid,
+    auto_snapshot_all, get_participant_by_sid,
     find_participant_token_by_discord_id,
     save_state_snapshot, load_state_snapshot, clear_state_snapshot,
 )
@@ -104,22 +104,11 @@ def test_apply_penalty_unknown_sid_returns_none():
     assert result is None
 
 
-def test_apply_penalty_noop_after_submission():
+def test_record_copy_attempt_noop_after_game_ends():
     g = create_game()
     add_to_lobby(g, None, "Alice", "sid1")
     start_game(g)
-    snapshot_participant("sid1")
-    result = apply_penalty("sid1")
-    assert result is None
-    p = list(g.participants.values())[0]
-    assert p.tab_out_count == 0
-
-
-def test_record_copy_attempt_noop_after_submission():
-    g = create_game()
-    add_to_lobby(g, None, "Alice", "sid1")
-    start_game(g)
-    snapshot_participant("sid1")
+    end_game(g)
     result = record_copy_attempt("sid1")
     assert result is None
     p = list(g.participants.values())[0]
@@ -143,28 +132,19 @@ def test_record_copy_attempt():
     assert result == {"copy_attempt_count": 1}
 
 
-def test_snapshot_participant():
-    g = create_game()
-    add_to_lobby(g, None, "Alice", "sid1")
-    start_game(g)
-    p = list(g.participants.values())[0]
-    p.html = "<p>hello</p>"
-    snapshot_participant("sid1")
-    assert p.final_html == "<p>hello</p>"
-    assert p.submitted_at is not None
-
-
-def test_auto_snapshot_all_skips_already_submitted():
+def test_auto_snapshot_all_skips_already_finalized():
     g = create_game()
     add_to_lobby(g, None, "Alice", "sid1")
     add_to_lobby(g, None, "Bob", "sid2")
     start_game(g)
     participants = list(g.participants.values())
     participants[0].html = "<p>alice</p>"
-    snapshot_participant(participants[0].sid)
+    participants[0].final_html = "<p>alice snapshot</p>"
+    participants[0].submitted_at = time.time()
     first_submitted_at = participants[0].submitted_at
     auto_snapshot_all(g)
     assert participants[0].submitted_at == first_submitted_at
+    assert participants[0].final_html == "<p>alice snapshot</p>"
 
 
 def test_to_dict_structure():

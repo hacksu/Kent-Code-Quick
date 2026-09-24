@@ -181,24 +181,14 @@ describe('Admin page - project export', () => {
 		expect(queryByTestId('export-section')).toBeNull();
 	});
 
-	it('counts how many projects are finished', async () => {
+	it('shows the participant count', async () => {
 		adminSession();
 		const { findByTestId } = render(Page);
 		await findByTestId('toggle-signup');
 		activeGame({ t1: alice, t2: bob });
 
 		const section = await findByTestId('export-section');
-		expect(section.textContent).toContain('1 of 2 projects finished');
-	});
-
-	it('cannot export finished projects while none are finished', async () => {
-		adminSession();
-		const { findByTestId } = render(Page);
-		await findByTestId('toggle-signup');
-		activeGame({ t2: bob });
-
-		expect((await findByTestId('export-finished')).hasAttribute('disabled')).toBe(true);
-		expect((await findByTestId('export-all')).hasAttribute('disabled')).toBe(false);
+		expect(section.textContent).toContain('2 projects');
 	});
 
 	it('downloads a zip named by the server when exporting', async () => {
@@ -217,33 +207,13 @@ describe('Admin page - project export', () => {
 			blob: async () => new Blob(['zip']),
 			headers: { get: () => 'attachment; filename="kcq-projects-20250101-120000.zip"' },
 		});
-		await fireEvent.click(await findByTestId('export-finished'));
+		await fireEvent.click(await findByTestId('export-projects'));
 
-		expect(mockFetch).toHaveBeenLastCalledWith('/api/game/export?scope=finished');
+		expect(mockFetch).toHaveBeenLastCalledWith('/api/game/export');
 		await waitFor(() => expect(click).toHaveBeenCalled());
 		const link = click.mock.instances[0] as HTMLAnchorElement;
 		expect(link.download).toBe('kcq-projects-20250101-120000.zip');
 		expect(revokeObjectURL).toHaveBeenCalledWith('blob:zip');
-		click.mockRestore();
-	});
-
-	it('asks for every project when exporting all', async () => {
-		adminSession();
-		const { findByTestId } = render(Page);
-		await findByTestId('toggle-signup');
-		activeGame({ t1: alice, t2: bob });
-
-		Object.assign(URL, { createObjectURL: vi.fn(() => 'blob:zip'), revokeObjectURL: vi.fn() });
-		const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
-		mockFetch.mockResolvedValueOnce({
-			ok: true,
-			blob: async () => new Blob(['zip']),
-			headers: { get: () => null },
-		});
-
-		await fireEvent.click(await findByTestId('export-all'));
-		expect(mockFetch).toHaveBeenLastCalledWith('/api/game/export?scope=all');
-		await waitFor(() => expect(click).toHaveBeenCalled());
 		click.mockRestore();
 	});
 
@@ -258,7 +228,7 @@ describe('Admin page - project export', () => {
 			status: 404,
 			json: async () => ({ error: 'no projects to export' }),
 		});
-		await fireEvent.click(await findByTestId('export-finished'));
+		await fireEvent.click(await findByTestId('export-projects'));
 
 		const error = await findByTestId('export-error');
 		expect(error.textContent).toContain('no projects to export');

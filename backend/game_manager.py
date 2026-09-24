@@ -65,6 +65,9 @@ class GameState:
     started_at: Optional[float] = None
     ended_at: Optional[float] = None
     allow_internal_clipboard: bool = True  # copy/paste round-tripped within a participant's own editor
+    paused: bool = False
+    paused_at: Optional[float] = None
+    pause_duration_ms: float = 0.0
     lobby: dict = field(default_factory=dict)   # token -> LobbyEntry
     participants: dict = field(default_factory=dict)  # token -> Participant
 
@@ -75,6 +78,7 @@ class GameState:
             "started_at": self.started_at,
             "ended_at": self.ended_at,
             "allow_internal_clipboard": self.allow_internal_clipboard,
+            "paused": self.paused,
             "lobby_count": len(self.lobby),
             "lobby_names": [entry.name for entry in self.lobby.values()],
             "participants": {t: p.to_dict() for t, p in self.participants.items()},
@@ -171,6 +175,29 @@ def end_game(g: GameState) -> None:
         print(f"[results] failed to save state snapshot: {exc}")
 
 
+def compute_elapsed_ms(g: GameState) -> float:
+    if g.started_at is None:
+        return 0.0
+    end = g.paused_at if (g.paused and g.paused_at is not None) else time.time()
+    return (end - g.started_at) * 1000 - g.pause_duration_ms
+
+
+def pause_game(g: GameState) -> None:
+    if g.status != "active" or g.paused:
+        return
+    g.paused = True
+    g.paused_at = time.time()
+
+
+def resume_game(g: GameState) -> None:
+    if g.status != "active" or not g.paused:
+        return
+    if g.paused_at is not None:
+        g.pause_duration_ms += (time.time() - g.paused_at) * 1000
+    g.paused = False
+    g.paused_at = None
+
+
 def get_participant_by_sid(sid: str) -> Optional[Tuple[str, Participant]]:
     if game is None:
         return None
@@ -211,17 +238,6 @@ def auto_snapshot_all(g: GameState) -> None:
             participant.submitted_at = time.time()
 
 
-def snapshot_participant(sid: str) -> None:
-    result = get_participant_by_sid(sid)
-    if not result:
-        return
-    _, participant = result
-    participant.final_html = participant.html
-    participant.final_css = participant.css
-    participant.final_js = participant.js
-    participant.submitted_at = time.time()
-
-
 def _safe_filename(name: str) -> str:
     cleaned = re.sub(r"[^A-Za-z0-9_-]+", "_", name).strip("_")
     return cleaned or "participant"
@@ -240,17 +256,11 @@ def _build_document(name: str, html: str, css: str, js: str) -> str:
     )
 
 
-EXPORT_SCOPE_FINISHED = "finished"
-EXPORT_SCOPE_ALL = "all"
-EXPORT_SCOPES = (EXPORT_SCOPE_FINISHED, EXPORT_SCOPE_ALL)
-
-
 def is_finished(p: Participant) -> bool:
     """A project counts as finished once it has been snapshotted.
 
-    Snapshots happen when a participant submits, and for everyone still
-    working when the admin ends the event -- so after an event every
-    project is finished.
+    Snapshots happen for everyone at once when the admin ends the event --
+    nothing is finished before then.
     """
     return p.submitted_at is not None
 
@@ -264,12 +274,9 @@ def final_code(p: Participant) -> Tuple[str, str, str]:
     )
 
 
-def export_entries(g: GameState, scope: str = EXPORT_SCOPE_FINISHED) -> List[Tuple[str, Participant]]:
+def export_entries(g: GameState) -> List[Tuple[str, Participant]]:
     """(token, participant) pairs to export, ordered by display name."""
-    entries = sorted(g.participants.items(), key=lambda kv: (kv[1].name.lower(), kv[0]))
-    if scope == EXPORT_SCOPE_ALL:
-        return entries
-    return [(token, p) for token, p in entries if is_finished(p)]
+    return sorted(g.participants.items(), key=lambda kv: (kv[1].name.lower(), kv[0]))
 
 
 def _iso(ts: Optional[float]) -> Optional[str]:
@@ -288,10 +295,9 @@ def _export_project_filename(token: str, p: Participant) -> str:
     return f"{_safe_filename(p.name)}-{token}.html"
 
 
-def _export_manifest(g: GameState, entries: List[Tuple[str, Participant]], scope: str) -> dict:
+def _export_manifest(g: GameState, entries: List[Tuple[str, Participant]]) -> dict:
     return {
         "exported_at": _iso(time.time()),
-        "scope": scope,
         "status": g.status,
         "duration_ms": g.duration_ms,
         "started_at": _iso(g.started_at),
@@ -315,7 +321,7 @@ def _export_manifest(g: GameState, entries: List[Tuple[str, Participant]], scope
     }
 
 
-def _export_index(g: GameState, entries: List[Tuple[str, Participant]], scope: str) -> str:
+def _export_index(g: GameState, entries: List[Tuple[str, Participant]]) -> str:
     """A tiny contact sheet so the zip can be browsed without a server."""
     rows = "\n".join(
         "<tr>"
@@ -337,7 +343,7 @@ def _export_index(g: GameState, entries: List[Tuple[str, Participant]], scope: s
         "th{font-size:12px;text-transform:uppercase;color:#666}"
         "</style>\n</head>\n<body>\n"
         "<h1>Kent Code Quick</h1>\n"
-        f"<p>{len(entries)} project(s), scope <strong>{html_escape(scope)}</strong>. "
+        f"<p>{len(entries)} project(s). "
         f"Event {html_escape(g.status)}; started {html_escape(_local_time(g.started_at))}, "
         f"ended {html_escape(_local_time(g.ended_at))}.</p>\n"
         "<table>\n<thead><tr><th>Name</th><th>Finished</th><th>Submitted</th>"
@@ -347,32 +353,31 @@ def _export_index(g: GameState, entries: List[Tuple[str, Participant]], scope: s
     )
 
 
-def build_export_archive(
-    g: GameState, scope: str = EXPORT_SCOPE_FINISHED
-) -> Tuple[bytes, str, int]:
-    """Zip every in-scope project into one downloadable archive.
+def build_export_archive(g: GameState) -> Tuple[bytes, str, int]:
+    """Zip every project into one downloadable archive.
 
     Returns the zip bytes, a suggested filename, and how many projects
     went in (zero means there was nothing to export).
     """
-    if scope not in EXPORT_SCOPES:
-        raise ValueError(f"unknown export scope: {scope}")
-    entries = export_entries(g, scope)
+    entries = export_entries(g)
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     root = f"kcq-projects-{stamp}"
 
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as archive:
+        # GitHub Pages runs Jekyll by default, which can choke on stray
+        # {{ }} / {% %} in a participant's JS or CSS. This disables it.
+        archive.writestr(".nojekyll", "")
         for token, p in entries:
             html_src, css, js = final_code(p)
             archive.writestr(
                 f"{root}/projects/{_export_project_filename(token, p)}",
                 _build_document(p.name, html_src, css, js),
             )
-        archive.writestr(f"{root}/index.html", _export_index(g, entries, scope))
+        archive.writestr(f"{root}/index.html", _export_index(g, entries))
         archive.writestr(
             f"{root}/manifest.json",
-            json.dumps(_export_manifest(g, entries, scope), indent=2),
+            json.dumps(_export_manifest(g, entries), indent=2),
         )
     return buf.getvalue(), f"{root}.zip", len(entries)
 
@@ -406,6 +411,9 @@ def save_state_snapshot(g: Optional[GameState] = None) -> Optional[str]:
         "started_at": g.started_at,
         "ended_at": g.ended_at,
         "allow_internal_clipboard": g.allow_internal_clipboard,
+        "paused": g.paused,
+        "paused_at": g.paused_at,
+        "pause_duration_ms": g.pause_duration_ms,
         "lobby": {t: asdict(e) for t, e in g.lobby.items()},
         "participants": {t: asdict(p) for t, p in g.participants.items()},
     }
@@ -433,6 +441,9 @@ def load_state_snapshot() -> Optional[GameState]:
         started_at=payload.get("started_at"),
         ended_at=payload.get("ended_at"),
         allow_internal_clipboard=payload.get("allow_internal_clipboard", True),
+        paused=payload.get("paused", False),
+        paused_at=payload.get("paused_at"),
+        pause_duration_ms=payload.get("pause_duration_ms", 0.0),
     )
     for token, entry in (payload.get("lobby") or {}).items():
         entry = dict(entry)
