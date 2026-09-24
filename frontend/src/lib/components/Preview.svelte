@@ -18,7 +18,7 @@
 
 <iframe
 	title="preview"
-	sandbox="allow-scripts"
+	sandbox="allow-scripts allow-forms"
 	referrerpolicy="no-referrer"
 	{srcdoc}
 	class="w-full h-full border-none bg-white"
