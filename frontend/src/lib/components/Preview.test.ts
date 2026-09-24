@@ -13,10 +13,10 @@ describe('Preview.svelte', () => {
 		expect(container.querySelector('iframe')).toBeTruthy();
 	});
 
-	it('sets sandbox="allow-scripts"', () => {
+	it('sets sandbox="allow-scripts allow-forms"', () => {
 		const { container } = render(Preview, { html: '', css: '', js: '' });
 		const iframe = container.querySelector('iframe');
-		expect(iframe?.getAttribute('sandbox')).toBe('allow-scripts');
+		expect(iframe?.getAttribute('sandbox')).toBe('allow-scripts allow-forms');
 	});
 
 	it('renders with js prop', () => {
