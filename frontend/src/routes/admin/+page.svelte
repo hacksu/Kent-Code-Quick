@@ -183,6 +183,9 @@
 					<h2 class="mb-2 text-base font-semibold">Game in Progress</h2>
 					<div class="mb-4 flex items-center gap-3">
 						<Timer elapsed={store.elapsed} durationMs={store.durationMs} />
+						{#if store.paused}
+							<span class="rounded bg-yellow-500/20 px-2 py-0.5 text-xs font-medium text-yellow-400">Paused</span>
+						{/if}
 						<button
 							type="button"
 							data-testid="timer-fullscreen-btn"
@@ -200,6 +203,14 @@
 						<a href="/watch" class="flex-1 rounded-lg border border-white/20 px-4 py-2 text-center text-sm font-semibold text-white hover:bg-white/10">
 							Live View
 						</a>
+						<button
+							type="button"
+							data-testid="pause-game-btn"
+							onclick={() => (store.paused ? store.sendResumeGame() : store.sendPauseGame())}
+							class="flex-1 rounded-lg bg-yellow-600 px-4 py-2 text-sm font-semibold text-white hover:bg-yellow-700"
+						>
+							{store.paused ? 'Resume' : 'Pause'}
+						</button>
 						<button
 							type="button"
 							onclick={() => store.sendEndEvent()}

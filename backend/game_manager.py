@@ -65,6 +65,9 @@ class GameState:
     started_at: Optional[float] = None
     ended_at: Optional[float] = None
     allow_internal_clipboard: bool = True  # copy/paste round-tripped within a participant's own editor
+    paused: bool = False
+    paused_at: Optional[float] = None
+    pause_duration_ms: float = 0.0
     lobby: dict = field(default_factory=dict)   # token -> LobbyEntry
     participants: dict = field(default_factory=dict)  # token -> Participant
 
@@ -75,6 +78,7 @@ class GameState:
             "started_at": self.started_at,
             "ended_at": self.ended_at,
             "allow_internal_clipboard": self.allow_internal_clipboard,
+            "paused": self.paused,
             "lobby_count": len(self.lobby),
             "lobby_names": [entry.name for entry in self.lobby.values()],
             "participants": {t: p.to_dict() for t, p in self.participants.items()},
@@ -169,6 +173,29 @@ def end_game(g: GameState) -> None:
         save_state_snapshot(g)
     except OSError as exc:
         print(f"[results] failed to save state snapshot: {exc}")
+
+
+def compute_elapsed_ms(g: GameState) -> float:
+    if g.started_at is None:
+        return 0.0
+    end = g.paused_at if (g.paused and g.paused_at is not None) else time.time()
+    return (end - g.started_at) * 1000 - g.pause_duration_ms
+
+
+def pause_game(g: GameState) -> None:
+    if g.status != "active" or g.paused:
+        return
+    g.paused = True
+    g.paused_at = time.time()
+
+
+def resume_game(g: GameState) -> None:
+    if g.status != "active" or not g.paused:
+        return
+    if g.paused_at is not None:
+        g.pause_duration_ms += (time.time() - g.paused_at) * 1000
+    g.paused = False
+    g.paused_at = None
 
 
 def get_participant_by_sid(sid: str) -> Optional[Tuple[str, Participant]]:
@@ -406,6 +433,9 @@ def save_state_snapshot(g: Optional[GameState] = None) -> Optional[str]:
         "started_at": g.started_at,
         "ended_at": g.ended_at,
         "allow_internal_clipboard": g.allow_internal_clipboard,
+        "paused": g.paused,
+        "paused_at": g.paused_at,
+        "pause_duration_ms": g.pause_duration_ms,
         "lobby": {t: asdict(e) for t, e in g.lobby.items()},
         "participants": {t: asdict(p) for t, p in g.participants.items()},
     }
@@ -433,6 +463,9 @@ def load_state_snapshot() -> Optional[GameState]:
         started_at=payload.get("started_at"),
         ended_at=payload.get("ended_at"),
         allow_internal_clipboard=payload.get("allow_internal_clipboard", True),
+        paused=payload.get("paused", False),
+        paused_at=payload.get("paused_at"),
+        pause_duration_ms=payload.get("pause_duration_ms", 0.0),
     )
     for token, entry in (payload.get("lobby") or {}).items():
         entry = dict(entry)

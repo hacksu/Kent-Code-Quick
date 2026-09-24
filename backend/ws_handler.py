@@ -10,12 +10,15 @@ from extensions import socketio
 from game_manager import (
     add_to_lobby,
     apply_penalty,
+    compute_elapsed_ms,
     end_game,
     find_participant_token_by_discord_id,
     get_or_create_game,
     get_participant_by_sid,
+    pause_game,
     record_copy_attempt,
     reset_game,
+    resume_game,
     save_state_snapshot,
     snapshot_participant,
     start_game,
@@ -36,8 +39,8 @@ def _run_timer() -> None:
     ticks = 0
     while g.ended_at is None and game_manager.game is g:
         gevent.sleep(1)
-        elapsed = (time.time() - g.started_at) * 1000
-        socketio.emit("timer_tick", {"elapsed": elapsed, "ended": False}, to=GAME_ROOM)
+        elapsed = compute_elapsed_ms(g)
+        socketio.emit("timer_tick", {"elapsed": elapsed, "ended": False, "paused": g.paused}, to=GAME_ROOM)
         ticks += 1
         if ticks % SNAPSHOT_EVERY_TICKS == 0:
             try:
@@ -166,6 +169,28 @@ def handle_end_event(data: dict) -> None:
     _broadcast_event_end(g)
 
 
+@socketio.on("pause_game")
+def handle_pause_game(data: dict) -> None:
+    if not session.get("is_admin"):
+        return
+    g = game_manager.game
+    if g is None:
+        return
+    pause_game(g)
+    socketio.emit("game_paused", {"paused": True}, to=GAME_ROOM)
+
+
+@socketio.on("resume_game")
+def handle_resume_game(data: dict) -> None:
+    if not session.get("is_admin"):
+        return
+    g = game_manager.game
+    if g is None:
+        return
+    resume_game(g)
+    socketio.emit("game_paused", {"paused": False}, to=GAME_ROOM)
+
+
 @socketio.on("reset_game")
 def handle_reset_game(data: dict) -> None:
     if not session.get("is_admin"):
@@ -238,6 +263,9 @@ def handle_code_update(data: dict) -> None:
         return
     token, participant = pair
     if participant.submitted_at is not None:
+        return
+    g = game_manager.game
+    if g is not None and g.paused:
         return
     participant.html = data.get("html", participant.html)
     participant.css = data.get("css", participant.css)

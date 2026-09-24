@@ -28,6 +28,7 @@ export interface GameStatePayload {
 	started_at: number | null;
 	ended_at: number | null;
 	allow_internal_clipboard: boolean;
+	paused: boolean;
 	lobby_count: number;
 	lobby_names: string[];
 	participants: Record<string, Participant>;
@@ -45,6 +46,7 @@ export function createPlayStore(token: string) {
 	let elapsed = $state(0);
 	let durationMs = $state(DEFAULT_DURATION_MS);
 	let allowInternalClipboard = $state(true);
+	let paused = $state(false);
 
 	socket.on('connect', () => {
 		socket.emit('join_game', { token: activeToken });
@@ -59,6 +61,7 @@ export function createPlayStore(token: string) {
 		participants = data.participants;
 		durationMs = data.duration_ms;
 		allowInternalClipboard = data.allow_internal_clipboard;
+		paused = data.paused;
 		if (data.status === 'ended') eventEnded = true;
 		if (data.participants[activeToken]?.submitted_at != null) hasSubmitted = true;
 	});
@@ -73,6 +76,7 @@ export function createPlayStore(token: string) {
 	socket.on('submitted', () => { hasSubmitted = true; });
 	socket.on('event_end', () => { eventEnded = true; });
 	socket.on('timer_tick', (data: { elapsed: number }) => { elapsed = data.elapsed; });
+	socket.on('game_paused', (data: { paused: boolean }) => { paused = data.paused; });
 	socket.on('game_locked', () => { window.location.href = '/'; });
 	socket.on('auth_required', () => { window.location.href = '/'; });
 
@@ -86,6 +90,7 @@ export function createPlayStore(token: string) {
 		get elapsed() { return elapsed; },
 		get durationMs() { return durationMs; },
 		get allowInternalClipboard() { return allowInternalClipboard; },
+		get paused() { return paused; },
 		get timeRemaining() { return durationMs - elapsed; },
 		get myParticipant() { return participants[activeToken] ?? null; },
 		sendCodeUpdate(html: string, css: string, js: string) { socket.emit('code_update', { html, css, js }); },
@@ -106,6 +111,7 @@ export function createWatchStore() {
 	let elapsed = $state(0);
 	let durationMs = $state(DEFAULT_DURATION_MS);
 	let allowInternalClipboard = $state(true);
+	let paused = $state(false);
 	let eventEnded = $state(false);
 
 	socket.on('connect', () => { socket.emit('watch_game', {}); });
@@ -114,6 +120,7 @@ export function createWatchStore() {
 		participants = data.participants;
 		durationMs = data.duration_ms;
 		allowInternalClipboard = data.allow_internal_clipboard;
+		paused = data.paused;
 		gameStatus = data.status as 'waiting' | 'active' | 'ended';
 		lobbyCount = data.lobby_count;
 		lobbyNames = data.lobby_names ?? [];
@@ -132,6 +139,7 @@ export function createWatchStore() {
 	});
 
 	socket.on('timer_tick', (data: { elapsed: number }) => { elapsed = data.elapsed; });
+	socket.on('game_paused', (data: { paused: boolean }) => { paused = data.paused; });
 	socket.on('auth_required', () => { window.location.href = '/'; });
 
 	socket.on('event_end', (data: GameStatePayload) => {
@@ -148,6 +156,7 @@ export function createWatchStore() {
 		elapsed = 0;
 		eventEnded = false;
 		allowInternalClipboard = true;
+		paused = false;
 	});
 
 	socket.connect();
@@ -160,11 +169,14 @@ export function createWatchStore() {
 		get elapsed() { return elapsed; },
 		get durationMs() { return durationMs; },
 		get allowInternalClipboard() { return allowInternalClipboard; },
+		get paused() { return paused; },
 		get eventEnded() { return eventEnded; },
 		sendStartGame(durationMs: number, allowInternalClipboard: boolean) {
 			socket.emit('start_game', { duration_ms: durationMs, allow_internal_clipboard: allowInternalClipboard });
 		},
 		sendEndEvent() { socket.emit('end_event', {}); },
 		sendResetGame() { socket.emit('reset_game', {}); },
+		sendPauseGame() { socket.emit('pause_game', {}); },
+		sendResumeGame() { socket.emit('resume_game', {}); },
 	};
 }

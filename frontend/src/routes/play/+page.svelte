@@ -24,7 +24,7 @@
 	let endOverlayDismissed = $state(false);
 	let editorRef: Editor;
 
-	const frozen = $derived(store.hasSubmitted || store.eventEnded);
+	const frozen = $derived(store.hasSubmitted || store.eventEnded || store.paused);
 
 	onMount(async () => {
 		const res = await fetch('/api/config');
@@ -98,8 +98,11 @@
 		<div class="penalty-slot">
 			<PenaltyBanner penalty={store.currentPenalty} />
 		</div>
-		<div class="timer-slot">
+		<div class="timer-slot flex items-center gap-2">
 			<Timer elapsed={store.elapsed} durationMs={store.durationMs} />
+			{#if store.paused}
+				<span class="rounded bg-yellow-500/20 px-2 py-0.5 text-xs font-medium text-yellow-400">Paused by admin</span>
+			{/if}
 		</div>
 	</div>
 
