@@ -365,6 +365,7 @@ def serve_spa(path: str):
 
 if __name__ == "__main__":
     game_manager.load_settings()
+    game_manager.load_pending_restore()
     restored = game_manager.load_state_snapshot()
     if restored is not None:
         print(

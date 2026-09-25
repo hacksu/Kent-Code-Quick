@@ -93,6 +93,13 @@ class GameState:
 
 game: Optional[GameState] = None
 
+# discord_id -> {name, html, css, js, tab_out_count, copy_attempt_count}.
+# Staged by restore_from_export() and consumed by start_game() so a restore
+# survives a "New Game"/reset that replaces `game` entirely -- participants
+# are recreated fresh from the lobby on every start_game() call, so this is
+# the only thing that carries restored code across that boundary.
+pending_restore: dict = {}
+
 
 def get_or_create_game() -> GameState:
     global game
@@ -150,11 +157,17 @@ def find_participant_token_by_discord_id(g: GameState, discord_id: str) -> Optio
 
 def start_game(g: GameState) -> None:
     for token, entry in g.lobby.items():
+        restore = pending_restore.get(entry.discord_id) if entry.discord_id else None
         g.participants[token] = Participant(
             id=str(uuid.uuid4()),
             name=entry.name,
             sid=entry.sid,
             discord_id=entry.discord_id,
+            html=restore["html"] if restore else "",
+            css=restore["css"] if restore else "",
+            js=restore["js"] if restore else "",
+            tab_out_count=restore["tab_out_count"] if restore else 0,
+            copy_attempt_count=restore["copy_attempt_count"] if restore else 0,
         )
     g.lobby.clear()
     g.status = "active"
@@ -427,13 +440,6 @@ def _epoch(iso: Optional[str]) -> Optional[float]:
 
 
 def restore_from_export(zip_bytes: bytes) -> dict:
-    """Rebuild live participants (and, if no game is running yet, game timing)
-    from a previously-downloaded export zip (see `build_export_archive`).
-
-    Existing participants have only their html/css/js overwritten -- their
-    submitted/finished status is never touched. Participants missing from the
-    live game are recreated fresh (unsubmitted) from the archive.
-    """
     with zipfile.ZipFile(io.BytesIO(zip_bytes)) as archive:
         manifest_name = next(
             (n for n in archive.namelist() if n.endswith("manifest.json")), None
@@ -460,6 +466,10 @@ def restore_from_export(zip_bytes: bytes) -> dict:
                 results.append({"name": name, "token": token, "restored": False, "error": str(exc)})
                 continue
 
+            discord_id = entry.get("discord_id", "")
+            tab_out_count = entry.get("tab_out_count", 0)
+            copy_attempt_count = entry.get("copy_attempt_count", 0)
+
             existing = g.participants.get(token)
             if existing is not None:
                 existing.html, existing.css, existing.js = html, css, js
@@ -468,13 +478,27 @@ def restore_from_export(zip_bytes: bytes) -> dict:
                     id=entry.get("id") or str(uuid.uuid4()),
                     name=name,
                     sid="",
-                    discord_id=entry.get("discord_id", ""),
+                    discord_id=discord_id,
                     html=html,
                     css=css,
                     js=js,
-                    tab_out_count=entry.get("tab_out_count", 0),
-                    copy_attempt_count=entry.get("copy_attempt_count", 0),
+                    tab_out_count=tab_out_count,
+                    copy_attempt_count=copy_attempt_count,
                 )
+
+            # Stage by discord_id too, so this restore also applies the next
+            # time start_game() runs -- e.g. if the admin has to create a
+            # fresh game rather than reuse this one.
+            if discord_id:
+                pending_restore[discord_id] = {
+                    "name": name,
+                    "html": html,
+                    "css": css,
+                    "js": js,
+                    "tab_out_count": tab_out_count,
+                    "copy_attempt_count": copy_attempt_count,
+                }
+
             results.append({"name": name, "token": token, "restored": True, "error": None})
 
         if g.started_at is None and manifest.get("started_at"):
@@ -488,7 +512,34 @@ def restore_from_export(zip_bytes: bytes) -> dict:
                 g.pause_duration_ms = 0.0
 
         save_state_snapshot(g)
+        save_pending_restore()
     return {"participant_count": len(g.participants), "results": results}
+
+
+def _pending_restore_path() -> str:
+    return os.path.join(os.environ.get("RESULTS_DIR", "results"), "pending_restore.json")
+
+
+def save_pending_restore() -> Optional[str]:
+    path = _pending_restore_path()
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    tmp = f"{path}.tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(pending_restore, f)
+    os.replace(tmp, path)
+    return path
+
+
+def load_pending_restore() -> dict:
+    global pending_restore
+    try:
+        with open(_pending_restore_path(), encoding="utf-8") as f:
+            loaded = json.load(f)
+    except (OSError, ValueError):
+        return pending_restore
+    if isinstance(loaded, dict):
+        pending_restore = loaded
+    return pending_restore
 
 
 def _state_path() -> str:
