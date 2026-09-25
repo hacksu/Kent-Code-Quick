@@ -13,6 +13,10 @@
 	let starting = $state(false);
 	let exporting = $state(false);
 	let exportError = $state<string | null>(null);
+	let restoring = $state(false);
+	let restoreError = $state<string | null>(null);
+	let restoreReport = $state<{ name: string; token: string; restored: boolean; error: string | null }[] | null>(null);
+	let restoreFileInput = $state<HTMLInputElement | undefined>(undefined);
 	let timerFullscreen = $state(false);
 
 	const store = createWatchStore();
@@ -85,6 +89,32 @@
 			exportError = 'Export failed.';
 		}
 		exporting = false;
+	}
+
+	async function restoreProjects(file: File) {
+		restoring = true;
+		restoreError = null;
+		restoreReport = null;
+		try {
+			const body = new FormData();
+			body.append('file', file);
+			const resp = await fetch('/api/game/restore', { method: 'POST', body });
+			const data = await resp.json().catch(() => null);
+			if (!resp.ok) {
+				restoreError = data?.error ?? 'Restore failed.';
+			} else {
+				restoreReport = data.results;
+			}
+		} catch {
+			restoreError = 'Restore failed.';
+		}
+		restoring = false;
+	}
+
+	function handleRestoreFileChange(e: Event) {
+		const file = (e.currentTarget as HTMLInputElement).files?.[0];
+		if (file) restoreProjects(file);
+		if (restoreFileInput) restoreFileInput.value = '';
 	}
 
 	function handleStart() {
@@ -261,6 +291,42 @@
 					{/if}
 				</section>
 			{/if}
+
+			<section data-testid="restore-section" class="w-full max-w-sm rounded-xl border border-white/10 bg-white/5 p-6">
+				<h2 class="mb-1 text-base font-semibold">Restore projects</h2>
+				<p class="mb-4 text-sm text-gray-400">
+					Rebuild participants' code from a previously-exported zip.
+				</p>
+				<input
+					bind:this={restoreFileInput}
+					type="file"
+					accept=".zip"
+					class="hidden"
+					data-testid="restore-file-input"
+					onchange={handleRestoreFileChange}
+				/>
+				<button
+					type="button"
+					data-testid="restore-projects"
+					disabled={restoring}
+					onclick={() => restoreFileInput?.click()}
+					class="w-full rounded-lg border border-white/20 px-4 py-2 text-sm font-semibold text-white hover:border-white/40 disabled:opacity-40"
+				>
+					{restoring ? 'Restoring...' : 'Restore from zip...'}
+				</button>
+				{#if restoreError}
+					<p data-testid="restore-error" class="mt-3 text-sm text-red-400">{restoreError}</p>
+				{/if}
+				{#if restoreReport}
+					<ul data-testid="restore-report" class="mt-3 space-y-1 text-xs text-gray-400">
+						{#each restoreReport as r (r.token)}
+							<li class={r.restored ? 'text-hacksu-green' : 'text-red-400'}>
+								{r.name}: {r.restored ? 'restored' : (r.error ?? 'failed')}
+							</li>
+						{/each}
+					</ul>
+				{/if}
+			</section>
 
 			<section class="w-full max-w-sm rounded-xl border border-white/10 bg-white/5 p-6">
 				<h2 class="mb-1 text-base font-semibold">Landing page sign-up</h2>

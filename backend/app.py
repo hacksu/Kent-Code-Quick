@@ -233,6 +233,20 @@ def export_projects():
     )
 
 
+@app.route("/api/game/restore", methods=["POST"])
+def restore_projects():
+    if not session.get("is_admin"):
+        return jsonify({"error": "forbidden"}), 403
+    upload = request.files.get("file")
+    if upload is None:
+        return jsonify({"error": "no file uploaded"}), 400
+    try:
+        report = game_manager.restore_from_export(upload.read())
+    except (ValueError, KeyError) as exc:
+        return jsonify({"error": str(exc)}), 400
+    return jsonify(report)
+
+
 # --- Docs proxy ---
 
 @app.route("/api/docs")
@@ -351,6 +365,7 @@ def serve_spa(path: str):
 
 if __name__ == "__main__":
     game_manager.load_settings()
+    game_manager.load_pending_restore()
     restored = game_manager.load_state_snapshot()
     if restored is not None:
         print(
