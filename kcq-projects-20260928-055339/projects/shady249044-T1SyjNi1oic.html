@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>shady249044</title>
+<style></style>
+</head>
+<body>
+<center>
+  <h1> Pretend Wordle</h1>
+  <sub> It works as long as you don't try to play it trust</sub>
+  <table>
+    <colgroup>
+      <col />
+      <col span="2" class="class1" />
+      <col span="2" class="class2" /> 
+    </colgroup>  
+    <thread>
+      <tr>
+        <td></td>
+        <th scope="col"></th>
+        <th scope="col"></th>
+        <th scope="col"></th>
+        <th scope="col"></th>
+        <th scope="col"></th>
+      </tr>
+    </thread>
+    <tbody>
+      <tr>
+        <th scope="row"></th>
+        <td> <b id="a1">  </b> </td>
+        <td> <b id="a2">  </b> </td>
+        <td> <b id="a3">  </b> </td>
+        <td> <b id="a4">  </b> </td>
+        <td> <b id="a5">  </b> </td>
+      </tr>
+      <tr>
+        <th scope="row"></th>
+        <td> <b id="b1">  </b> </td>
+        <td> <b id="b2">  </b> </td>
+        <td> <b id="b3">  </b> </td>
+        <td> <b id="b4">  </b> </td>
+        <td> <b id="b5">  </b> </td>
+      </tr>
+       <tr>
+        <th scope="row"></th>
+        <td> <b id="c1">  </b> </td>
+        <td> <b id="c2">  </b> </td>
+        <td> <b id="c3">  </b> </td>
+        <td> <b id="c4">  </b> </td>
+        <td> <b id="c5">  </b> </td>
+      </tr>
+       <tr>
+        <th scope="row"></th>
+        <td> <b id="d1">  </b> </td>
+        <td> <b id="d2">  </b> </td>
+        <td> <b id="d3">  </b> </td>
+        <td> <b id="d4">  </b> </td>
+        <td> <b id="d5">  </b> </td>
+      </tr>
+       <tr>
+        <th scope="row"></th>
+        <td> <b id="e1">  </b> </td>
+        <td> <b id="e2">  </b> </td>
+        <td> <b id="e3">  </b> </td>
+        <td> <b id="e4">  </b> </td>
+        <td> <b id="e5">  </b> </td>
+      </tr>
+       <tr>
+        <th scope="row"></th>
+        <td> <b id="f1">  </b> </td>
+        <td> <b id="f2">  </b> </td>
+        <td> <b id="f3">  </b> </td>
+        <td> <b id="f4">  </b> </td>
+        <td> <b id="f5">  </b> </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <form onSubmit="return doSomething(event)" id="form1">
+  <label> Guess </label>
+  <input type="text" id="guess" value="" />
+  <button type="submit" id="submitButton" value="" > Submit </button>
+</form>
+</center>
+<!--
+<label>
+  This is interactive
+  <input onchange="doSomething()" type="text" name="one" value="" />
+</label>
+
+<form onSubmit="return doSomething(event)" id="form1">
+  <label> Box: </label>
+  <input type="text" value="" />
+  <button type="submit" id="submitButton" value="" > Submit </button>
+</form>
+-->
+<script>const form1 = document.getElementById("form1");
+const guess = document.getElementById("guess");
+const a1 = document.getElementById("a1");
+const a2 = document.getElementById("a2");
+const a3 = document.getElementById("a3");
+const a4 = document.getElementById("a4");
+const a5 = document.getElementById("a5");
+const b1 = document.getElementById("b1");
+const b2 = document.getElementById("b2");
+const b3 = document.getElementById("b3");
+const b4 = document.getElementById("b4");
+const b5 = document.getElementById("b5");
+const c1 = document.getElementById("c1");
+const c2 = document.getElementById("c2");
+const c3 = document.getElementById("c3");
+const c4 = document.getElementById("c4");
+const c5 = document.getElementById("c5");
+const d1 = document.getElementById("d1");
+const d2 = document.getElementById("d2");
+const d3 = document.getElementById("d3");
+const d4 = document.getElementById("d4");
+const d5 = document.getElementById("d5");
+const e1 = document.getElementById("e1");
+const e2 = document.getElementById("e2");
+const e3 = document.getElementById("e3");
+const e4 = document.getElementById("e4");
+const e5 = document.getElementById("e5");
+const f1 = document.getElementById("f1");
+const f2 = document.getElementById("f2");
+const f3 = document.getElementById("f3");
+const f4 = document.getElementById("f4");
+const f5 = document.getElementById("f5");
+
+var count = 1;
+
+function doSomething(event) {
+
+  console.log(guess.value);
+  if (count == 6) {
+    f1.innerText = guess.value[0];
+    f2.innerText = guess.value[1];
+    f3.innerText = guess.value[2];
+    f4.innerText = guess.value[3];
+    f5.innerText = guess.value[4];  
+    count = 7;
+  }
+  else if (count == 5) {
+    e1.innerText = guess.value[0];
+    e2.innerText = guess.value[1];
+    e3.innerText = guess.value[2];
+    e4.innerText = guess.value[3];
+    e5.innerText = guess.value[4];  
+    count = 6;
+  }
+  else if (count == 4) {
+    d1.innerText = guess.value[0];
+    d2.innerText = guess.value[1];
+    d3.innerText = guess.value[2];
+    d4.innerText = guess.value[3];
+    d5.innerText = guess.value[4];  
+    count = 5;
+  }
+  else if (count == 3) {
+    c1.innerText = guess.value[0];
+    c2.innerText = guess.value[1];
+    c3.innerText = guess.value[2];
+    c4.innerText = guess.value[3];
+    c5.innerText = guess.value[4];  
+    count = 4;
+  }
+  else if (count == 2) {
+    b1.innerText = guess.value[0];
+    b2.innerText = guess.value[1];
+    b3.innerText = guess.value[2];
+    b4.innerText = guess.value[3];
+    b5.innerText = guess.value[4];  
+    count = 3;
+  }
+  else if (count == 1) {
+    a1.innerText = guess.value[0];
+    a2.innerText = guess.value[1];
+    a3.innerText = guess.value[2];
+    a4.innerText = guess.value[3];
+    a5.innerText = guess.value[4]; 
+    count = 2;
+  }
+
+
+  event.preventDefault();
+}
+
+form1.addEventListener("submit", doSomething);</script>
+</body>
+</html>

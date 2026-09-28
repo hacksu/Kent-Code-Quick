@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>tubofmargerine</title>
+<style>.Startbutton{border: 10px; border-radius: 20px; line-height: 4; font-size:1.5rem; text-align: center; 
+        color: white ; background-color: seagreen; font-family: comic;}
+.exitButton{border: 1px; border-radius: 10px; line-height: 4.5; font-size:1rem; text-align: center; 
+        color: white ; background-color: darkred; font-family: comic;}
+table{
+  border: 5px solid; font-family: comic; bgcolor: grey; border-color: black; padding = 0; 
+}
+
+  dialog {
+      background: black;
+    color:white;
+    margin-top: 2px;
+  }
+caption{
+  
+}
+.correct{
+  background-color: green; color: white;
+}
+.mid{
+  background-color: yellow; color: grey;
+}
+.wrong{background-color: red; color: white; text-align: center;}
+td{border-color: black; text-align: center; padding = 0; }
+tr{border-color: black; text-align: center; padding = 0 }
+
+.gridSet{margin-top: 100px;background-color:deeppink; text-align:center; color: white; line-height: 1.2; font-size:1.5rem;}
+.again{margin-top: 6px; background-color:deeppink; text-align:center; color: white; line-height: 1.2; font-size:1.5rem;}
+.Three{margin-top: 6px; background-color:deeppink; text-align:center; color: white; line-height: 1.2; font-size:1.5rem;}</style>
+</head>
+<body>
+<h2><s><center>Wordle</center></s></h2>
+<h1><strong><center>SWORDLE</center></strong></h1>
+
+<center><button class = "Startbutton" name = "start" type = "button" command = "show-modal" 
+          commandfor="starting-game" value="start game" padding= 3,4,5,6> Start Game! </button></form></center>
+
+<dialog id="starting-game"> 
+  <center><h2>Now Playing: Swordle!</h2></center>
+  <center><h4>The swear word Wordle!</h4></center>
+   <center><caption> Example Game: </caption></center>
+  <center><caption> Hint: Fecal Matter </caption><table>
+    <tbody>
+     <tr>
+      <td class= "wrong"> _ </td>
+      <td class= "wrong"> _ </td>
+      <td class= "wrong"> _ </td>
+      <td class= "wrong"> _ </td>
+     </tr>
+       <tr>
+      <td class= "wrong"> F </td>
+      <td class= "wrong"> U </td>
+       <td class= "wrong"> C </td>
+      <td class= "wrong"> K </td>
+     </tr>
+       <tr>
+       <td class= "mid"> S </td>
+       <td class= "wrong"> L </td>
+       <td class= "wrong"> U </td>
+       <td class= "correct"> T </td>
+     </tr>
+       <tr>
+       <td class= "correct">S</td>
+       <td class= "correct">H</td>
+       <td class= "correct">I</td>
+       <td class= "correct">T</td>
+     </tr>
+    </tbody>
+  </table></center>
+  <center><p></p></center>
+</dialog>
+
+
+<div> <center>
+ <button class= "gridSet"> q </button> 
+ <button class= "gridSet"> w </button> 
+ <button class= "gridSet"> e </button> 
+ <button class= "gridSet"> r </button> 
+ <button class= "gridSet"> t </button> 
+ <button class= "gridSet"> y </button> 
+ <button class= "gridSet"> u </button> 
+ <button class= "gridSet"> i </button> 
+ <button class= "gridSet"> o </button> 
+ <button class= "gridSet"> p </button>
+ </div> <div> <center>
+  <button class= "again"> a </button> 
+  <button class= "again"> s </button>
+   <button class= "again"> d </button> 
+  <button class= "again"> f </button>
+   <button class= "again"> g </button> 
+  <button class= "again"> h </button>
+   <button class= "again"> j </button> 
+  <button class= "again"> k </button>
+   <button class= "again"> l </button> 
+ </center> </div>
+ <div> <center>
+  <button class= "Three"> z </button> 
+<button class= "Three"> x </button> 
+ <button class= "Three"> c </button> 
+<button class= "Three"> v </button>
+   <button class= "Three"> b </button> 
+<button class= "Three"> n </button>
+   <button class= "Three"> m </button> 
+ </center></div>
+<script></script>
+</body>
+</html>

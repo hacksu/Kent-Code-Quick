@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>therin_moonsword543</title>
+<style>#layout-box {
+  align-items: center
+}
+
+body {
+  background-color: skyblue;
+  font-family: "Georgia";
+}
+
+#title-text {
+  border: solid #000000 4px;
+  color: black;
+  width: 12em;
+}
+
+#title {
+  display: flex;
+  justify-content: center;
+  align-content: center;
+  width: 100%;
+  text-align: center;
+  margin-top: 2em;
+  margin-bottom: 2em;
+}
+
+#start-screen {
+  justify-content: center;
+  align-content: center;
+  background-color: peachpuff;
+  width: 60%;
+  height: 60%;
+  min-height: 30em
+}
+
+.game-body {
+  justify-content: center;
+  display: flex;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+}
+
+#start-button {
+  display: flex;
+  justify-content: center;
+  border-radius: 16px;
+  height: 4em;
+  text-align: center;
+  width: 12em;
+  box-shadow: 0.1em 0.1em 0.5em darkgoldenrod;
+  background-color: seagreen;
+  padding: 1.3em;
+  font-size: 24px;
+  font-family: cursive;
+  font-style: oblique;
+  color: darkslategray;
+}
+
+.buttons {
+  display: flex;
+  justify-content: center;
+}
+
+#footer {
+  background-color: darkgreen;
+  display: flex;
+  justify-content: stretch;
+  width: 100%;
+  height: 2em;
+  align-content: center;
+}
+
+#footer-body {
+  display: flex;
+  justify-content: end;
+  width: 100%;
+  height: 2em;
+  margin-bottom: -2em;
+  align-content: end;
+}
+
+#reset-button {
+  display: flex;
+  justify-content: center;
+  border-radius: 16px;
+  height: 2em;
+  text-align: center;
+  width: 6em;
+  box-shadow: 0.1em 0.1em 0.5em whitesmoke;
+  background-color: navy;
+  padding: 0.3em;
+  font-size: 16px;
+  font-family: arial;
+  color: ghostwhite;
+}
+
+#game-screen {
+  display: flex;
+  justify-content: center;
+  align-content: center;
+  background-color: peachpuff;
+  width: 60%;
+  height: 60%;
+  min-height: 30em;
+  padding: 2em
+}
+
+#question-box {
+  display: flex;
+  justify-content: center;
+  height: 15em;
+  text-align: center;
+  width: 20em;
+  box-shadow: 0.1em 0.1em 0.5em darkgoldenrod;
+  background-color: seagreen;
+  padding: 1.3em;
+  font-size: 24px;
+  font-family: cursive;
+  font-style: oblique;
+  color: darkslategray;
+  border-radius: 16px;
+}
+
+#answer {
+  display: flex;
+  justify-content: center;
+  align-content: center;
+  offset: -120em;
+  height: 1em;
+  width: 12em;
+}</style>
+</head>
+<body>
+<!DOCTYPE HTML>
+<html>
+  
+  <link rel="stylesheet" href="">
+
+  <head>
+    <title>Worldle Game</title>
+  </head>
+  
+  <body>
+     
+      <section id = "title" style = "align-content:center">
+        <div id ="title-text">
+          <h1 style = "align-items: "><b>Worldle</b></h1>
+        </div>
+      </section>
+
+    
+    <section id = "start-page" style = "display: block">
+      <section class = "game-body">
+        <div id = "start-screen">
+          <div class = "buttons"><button value="Start game" id = "start-button">Start Game</button></div>
+        </div>
+      </section>
+    </section>
+
+    <section id = "game-page" style = "display: none">
+      <section class = "game-body">
+        <div id = "game-screen">
+          <div id = "question-box">
+            <ol>
+              <li>hi</li>
+              <li>hello</li>
+            </ol>
+          </div>
+          <div>
+            <label for = "answer">Country: </label>
+          
+            <input
+              type = "text"
+              id = "answer"
+              name = "answer"
+              minlength = "3"
+              size = "10" />
+          </div>
+        </div>
+      </section>
+    </section>
+
+
+
+
+
+
+
+
+    
+    <section id = "footer">
+      <div id = "footer-body">
+        <div id = "footer-button-container"> <button value = "Reset" id = "reset-button">Reset</button> </div>
+      </div>
+    </section>
+
+
+    
+    
+  </body>
+</html>
+<script>const startButton = document.getElementById("start-button");
+const resetButton = document.getElementById("reset-button");
+const startPage = document.getElementById("start-page");
+const gamePage = document.getElementById("game-page");
+
+startButton.addEventListener("click", startGame);
+resetButton.addEventListener("click", resetStart);
+
+function startGame() {
+  if (startButton.value === "Start game") {
+    startButton.textContent = "Started";
+    startPage.style.display = `none`;
+    gamePage.style.display = `block`;
+    
+    
+  }
+}
+
+function resetStart() {
+  if (resetButton.value === "Reset") {
+    startButton.textContent = "Start Game";
+    startPage.style.display = `block`;
+    gamePage.style.display = `none`;
+  }
+}</script>
+</body>
+</html>

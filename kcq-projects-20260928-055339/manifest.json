@@ -1,0 +1,77 @@
+{
+  "exported_at": "2026-09-28T05:53:39.838038+00:00",
+  "status": "ended",
+  "duration_ms": 2400000,
+  "started_at": "2026-09-25T00:08:28.309245+00:00",
+  "ended_at": "2026-09-25T00:53:30.644286+00:00",
+  "participant_count": 6,
+  "exported_count": 6,
+  "projects": [
+    {
+      "token": "H4x3hRyusZI",
+      "id": "6f6ad834-81a8-429c-b1fe-a08dbf8f9ae2",
+      "name": "luscanna",
+      "discord_id": "326800813508919296",
+      "file": "projects/luscanna-H4x3hRyusZI.html",
+      "finished": true,
+      "submitted_at": "2026-09-25T00:53:30.644248+00:00",
+      "tab_out_count": 1,
+      "copy_attempt_count": 0
+    },
+    {
+      "token": "1NVkM9Srl9E",
+      "id": "1cc4e134-87d8-4896-9aaf-a00844249aa8",
+      "name": "magicmaker2300",
+      "discord_id": "1181433182193725521",
+      "file": "projects/magicmaker2300-1NVkM9Srl9E.html",
+      "finished": true,
+      "submitted_at": "2026-09-25T00:53:30.644252+00:00",
+      "tab_out_count": 4,
+      "copy_attempt_count": 0
+    },
+    {
+      "token": "_mxd5R_IM4M",
+      "id": "1497c407-2de3-485f-a618-3edda317eec1",
+      "name": "moon_shadow2",
+      "discord_id": "959636142989410324",
+      "file": "projects/moon_shadow2-_mxd5R_IM4M.html",
+      "finished": true,
+      "submitted_at": "2026-09-25T00:53:30.644254+00:00",
+      "tab_out_count": 4,
+      "copy_attempt_count": 0
+    },
+    {
+      "token": "T1SyjNi1oic",
+      "id": "0f67dcde-4952-4aae-aebe-8ff2317a6bf9",
+      "name": "shady249044",
+      "discord_id": "724067521828749323",
+      "file": "projects/shady249044-T1SyjNi1oic.html",
+      "finished": true,
+      "submitted_at": "2026-09-25T00:53:30.644251+00:00",
+      "tab_out_count": 8,
+      "copy_attempt_count": 0
+    },
+    {
+      "token": "hVN613YIZv4",
+      "id": "913721a9-d611-42a2-a872-efcfe862eaaf",
+      "name": "therin_moonsword543",
+      "discord_id": "760619814275907636",
+      "file": "projects/therin_moonsword543-hVN613YIZv4.html",
+      "finished": true,
+      "submitted_at": "2026-09-25T00:53:30.644245+00:00",
+      "tab_out_count": 2,
+      "copy_attempt_count": 0
+    },
+    {
+      "token": "Rjhk_8vQ-6A",
+      "id": "ed543800-a6ee-46bc-a8e0-267583a3f42c",
+      "name": "tubofmargerine",
+      "discord_id": "694236369773396010",
+      "file": "projects/tubofmargerine-Rjhk_8vQ-6A.html",
+      "finished": true,
+      "submitted_at": "2026-09-25T00:53:30.644249+00:00",
+      "tab_out_count": 13,
+      "copy_attempt_count": 0
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>luscanna</title>
+<style>.title{
+  color: green;
+  
+}
+.word-guess {
+  width: 20px;
+  border-color: grey;
+}</style>
+</head>
+<body>
+<!DOCTYPE html>
+<html>
+  
+<h2 class="title">worble</h2>
+<hr>
+
+<form action="" method="get">
+<div>
+<p><input class="word-guess" type="text" maxlength="1"/><input class="word-guess" type="text" maxlength="1"/><input class="word-guess" type="text" maxlength="1"/><input class="word-guess" type="text" maxlength="1"/><input class="word-guess" type="text" maxlength="1"/></p>
+  <!--
+<p><input class="word-guess" type="text" maxlength="1"/><input type="text" maxlength="1"/><input type="text" maxlength="1"/><input type="text" maxlength="1"/><input type="text" maxlength="1"/></p>
+<p><input type="text" maxlength="1"/><input type="text" maxlength="1"/><input type="text" maxlength="1"/><input type="text" maxlength="1"/><input type="text" maxlength="1"/></p>
+<p><input type="text" maxlength="1"/><input type="text" maxlength="1"/><input type="text" maxlength="1"/><input type="text" maxlength="1"/><input type="text" maxlength="1"/></p>
+<p><input type="text" maxlength="1"/><input type="text" maxlength="1"/><input type="text" maxlength="1"/><input type="text" maxlength="1"/><input type="text" maxlength="1"/></p>
+<p><input type="text" maxlength="1"/><input type="text" maxlength="1"/><input type="text" maxlength="1"/><input type="text" maxlength="1"/><input type="text" maxlength="1"/></p>
+</div>
+  -->
+
+<input type="submit" value="SUBMIT"/>
+</form>
+
+</html>
+<script>const wordList = [];
+wordList.push("crane", "toils", "might", "ploys", "apple", "peach", "muddy", "salon", "guard", "logic")
+
+
+function selectWord(){
+    var i = Math.random() % wordList.length();
+    return wordList[i]
+}
+function check(guess, word){
+  let colors[];
+  colors.push("grey", "grey", "grey", "grey", "grey");
+  for(let i = 0; i < 5; i++){
+    for (let j = 0; j < 5; j++){
+      if (guess[i] == word[j]){
+        if(i == j){
+          colors[j] = green
+        }
+        else {}
+      }
+    }
+  }
+  
+}</script>
+</body>
+</html>
